@@ -21,7 +21,7 @@ const FIXED_CALL_RATE = "12.5";
 
 function App() {
   const [activePage, setActivePage] = useState("لوحة التحكم");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768);
 
   // Temporary States
   const [holidayDate, setHolidayDate] = useState("");
@@ -223,15 +223,29 @@ function App() {
 
   const planCalculation = calculatePlan();
 
+  const handleNavigate = (page) => {
+    setActivePage(page);
+    if (window.innerWidth <= 768) setSidebarOpen(false);
+  };
+
   return (
     <div className="app-container" dir="rtl">
 
       {/* Sidebar */}
       <Sidebar
         activePage={activePage}
-        setActivePage={setActivePage}
+        setActivePage={handleNavigate}
         sidebarOpen={sidebarOpen}
       />
+
+      {/* Mobile backdrop */}
+      {sidebarOpen ? (
+        <button
+          className="sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close menu"
+        />
+      ) : null}
 
       {/* Main Content */}
       <main className="main-content">
