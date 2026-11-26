@@ -3,6 +3,7 @@ import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import { usePersistentState } from "./utils/usePersistentState";
+import { DEFAULT_ZONE_GROUPS } from "./utils/planningEngine";
 
 import Settings from "./pages/Settings";
 import Dashboard from "./pages/Dashboard";
@@ -31,6 +32,12 @@ function App() {
   const [callRate, setCallRate] = usePersistentState(
     "visit-planner-call-rate",
     FIXED_CALL_RATE
+  );
+
+  // Zone Groups (near areas allowed on the same day)
+  const [zoneGroups, setZoneGroups] = usePersistentState(
+    "visit-planner-zone-groups",
+    DEFAULT_ZONE_GROUPS
   );
 
   // Working Days
@@ -280,6 +287,7 @@ function App() {
 
             <VisitPlanning
               callRate={callRate}
+              zoneGroups={zoneGroups}
               workingDays={workingDays}
               holidays={holidays}
               meetings={meetings}
@@ -292,6 +300,8 @@ function App() {
             <Settings
               callRate={callRate}
               handleCallRateChange={handleCallRateChange}
+              zoneGroups={zoneGroups}
+              setZoneGroups={setZoneGroups}
               workingDays={workingDays}
               toggleWorkingDay={toggleWorkingDay}
               holidays={holidays}

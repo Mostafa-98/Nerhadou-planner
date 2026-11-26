@@ -13,6 +13,7 @@ import { usePersistentState } from "../utils/usePersistentState";
 
 function VisitPlanning({
     callRate,
+    zoneGroups,
     workingDays,
     holidays,
     meetings,
@@ -107,6 +108,7 @@ function VisitPlanning({
             holidays,
             meetings,
             callRate: Number(callRate) || 12.5,
+            zoneGroups,
         });
     };
 

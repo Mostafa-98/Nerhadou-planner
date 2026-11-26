@@ -1744,3 +1744,100 @@ button {
     cursor: default;
   }
 }
+
+/* Zone Groups Settings */
+
+.zone-groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.zone-group {
+  border: 1px solid #e3e9f1;
+  background: #f9fafc;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.zone-group-bricks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.zone-brick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eaf4fc;
+  color: #246da9;
+  border: 1px solid #8bbce0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.zone-brick-chip button {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: #b0524f;
+  padding: 0;
+}
+
+.zone-group-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zone-group-actions input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid #dce4ee;
+  border-radius: 9px;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.zone-group-actions input:focus {
+  border-color: #246da9;
+  box-shadow: 0 0 0 3px #246da91a;
+}
+
+.zone-group-actions button,
+.zone-group-add button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #dce4ee;
+  background: white;
+  color: #52647e;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  transition: .2s ease;
+}
+
+.zone-group-actions button:hover,
+.zone-group-add button:hover {
+  border-color: #75acd4;
+  background: #eff7fd;
+}
+
+.zone-group-actions .zone-group-delete {
+  color: #b0524f;
+}
+
+.zone-group-add {
+  margin-top: 12px;
+}

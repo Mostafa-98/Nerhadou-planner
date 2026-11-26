@@ -14,6 +14,7 @@ self.onmessage = (event) => {
         holidays: payload.holidays,
         meetings: payload.meetings,
         callRate: payload.callRate,
+        zoneGroups: payload.zoneGroups,
     });
 
     let validation = null;
@@ -25,6 +26,7 @@ self.onmessage = (event) => {
             workingDays: payload.workingDays,
             holidays: payload.holidays,
             meetings: payload.meetings,
+            zoneGroups: payload.zoneGroups,
         });
 
         // عند عدم اكتمال الخطة، أسماء الدكاترة الناقصين معروضة بالفعل

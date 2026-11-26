@@ -6,6 +6,19 @@ const MAX_GAP_DAYS = 25;
 
 const MAX_ATTEMPTS = 100;
 
+function sanitizeCallRate(value) {
+    const rate = Number(value);
+
+    if (!Number.isFinite(rate) || rate <= 0) {
+        return TARGET_CALL_RATE;
+    }
+
+    return Math.min(
+        Math.max(rate, 1),
+        MAX_DAILY_VISITS
+    );
+}
+
 const BRICK_ALIASES = {
     ashmoun: "اشمون",
     monouf: "منوف",
@@ -476,32 +489,59 @@ function getDoctorFrequency(doctor) {
     return Math.floor(value);
 }
 
-// مجموعات المناطق المؤكدة من المستخدم (23 نوفمبر 2026):
-// الشهداء لوحدها، السادات لوحدها، الباجور مع بي العرب
-// (وممكن مع أسطنها أحياناً)، منوف مع تتا وكفر فيشه وشبرا بلوله،
-// أشمون مع طليا وسمدون، وسرس الليان وسنتريس كل واحدة لوحدها.
+// مجموعات المناطق الافتراضية (مناطق خطة المستخدم التجريبية،
+// 23 نوفمبر 2026). تُستخدم فقط عندما لا تصل إعدادات مجموعات مناطق
+// من واجهة التطبيق؛ المستخدم يعدّلها من صفحة الإعدادات.
+// المناطق داخل المجموعة الواحدة يجوز جمعها في يوم واحد، وأي منطقة
+// غير موجودة في أي مجموعة تُعامل كمنطقة مستقلة لا تُخلط مع غيرها.
 // اليوم الواحد لا يجمع دكاترة من مجموعتين مختلفتين.
-const ZONE_GROUPS = {
-    "اشمون": "أشمون + طليا + سمدون",
-    "طليا": "أشمون + طليا + سمدون",
-    "سمدون": "أشمون + طليا + سمدون",
-    "منوف": "منوف + تتا + كفر فيشه + شبرا بلوله",
-    "تتا": "منوف + تتا + كفر فيشه + شبرا بلوله",
-    "كفر فيشه": "منوف + تتا + كفر فيشه + شبرا بلوله",
-    "شبرا بلوله": "منوف + تتا + كفر فيشه + شبرا بلوله",
-    "الباجور": "الباجور + بي العرب",
-    "بي العرب": "الباجور + بي العرب",
-    "الشهداء": "الشهداء",
-    "السادات": "السادات",
-    "سنتريس": "سنتريس",
-    "سرس": "سرس الليان",
-    "اسطنها": "اسطنها",
-};
+export const DEFAULT_ZONE_GROUPS = [
+    ["اشمون", "طليا", "سمدون"],
+    ["منوف", "تتا", "كفر فيشه", "شبرا بلوله"],
+    ["الباجور", "بي العرب"],
+    ["سرس", "سرس الليان"],
+];
 
-function getDoctorZone(doctor) {
+function buildZoneGroupMap(zoneGroups) {
+    const map = new Map();
+
+    if (!Array.isArray(zoneGroups)) {
+        return map;
+    }
+
+    for (const group of zoneGroups) {
+        if (!Array.isArray(group)) continue;
+
+        const members = [
+            ...new Set(
+                group
+                    .map((brick) => normalizeBrick(brick))
+                    .filter(
+                        (brick) =>
+                            brick && brick !== "غير محدد"
+                    )
+            ),
+        ];
+
+        if (members.length < 2) continue;
+
+        const key = [...members].sort().join(" + ");
+
+        for (const member of members) {
+            map.set(member, key);
+        }
+    }
+
+    return map;
+}
+
+function getDoctorZone(doctor, zoneGroupMap) {
     const brick = normalizeBrick(doctor.brick);
 
-    return ZONE_GROUPS[brick] || brick;
+    return (
+        (zoneGroupMap && zoneGroupMap.get(brick)) ||
+        brick
+    );
 }
 
 function getDoctorKey(doctor, index = 0) {
@@ -515,6 +555,11 @@ function getDoctorKey(doctor, index = 0) {
 }
 
 const NEW_DAY_OPENING_COST = 30;
+
+// تجاوز متوسط الكول ريت المستهدف في اليوم مكلف، حتى يفتح البلان
+// أياماً إضافية بدل تكديس اليوم الواحد فوق المستهدف، مع بقاء
+// التجاوز ممكناً عند ضغط الأيام (تكلفة محدودة وليست منعاً).
+const OVER_TARGET_PENALTY = 25;
 
 function getDayCost(day, doctorBrick, targetLoad) {
     const currentLoad = day.visits.length;
@@ -552,6 +597,10 @@ function getDayCost(day, doctorBrick, targetLoad) {
     // منطقة في أيام أقل، وتتبقى أيام كافية لباقي المناطق.
     if (currentLoad === 0) {
         cost += NEW_DAY_OPENING_COST;
+    }
+
+    if (currentLoad >= targetLoad) {
+        cost += OVER_TARGET_PENALTY;
     }
 
     return cost;
@@ -603,7 +652,8 @@ function addDoctorToDays(
 function getAttemptScore(
     days,
     doctors,
-    scheduledByDoctor
+    scheduledByDoctor,
+    targetRate = TARGET_CALL_RATE
 ) {
     const totalScheduled = days.reduce(
         (sum, day) => sum + day.visits.length,
@@ -637,7 +687,7 @@ function getAttemptScore(
 
     const targetRateDeviation =
         Math.pow(
-            average - TARGET_CALL_RATE,
+            average - targetRate,
             2
         );
 
@@ -798,7 +848,8 @@ export function runPlanningAttempt({
         score: getAttemptScore(
             days,
             preparedDoctors,
-            scheduledByDoctor
+            scheduledByDoctor,
+            targetLoad
         ),
     };
 }
@@ -807,6 +858,7 @@ export function runPartitionedAttempt({
     preparedDoctors,
     availableDates,
     seed = 0,
+    targetRate = TARGET_CALL_RATE,
 }) {
     const days = createEmptyDays(availableDates);
 
@@ -1058,7 +1110,8 @@ export function runPartitionedAttempt({
         score: getAttemptScore(
             days,
             preparedDoctors,
-            scheduledByDoctor
+            scheduledByDoctor,
+            targetRate
         ),
     };
 }
@@ -1069,9 +1122,16 @@ export function validateVisitPlan({
     workingDays,
     holidays = [],
     meetings = [],
+    zoneGroups,
 }) {
     const errors = [];
     const warnings = [];
+
+    const zoneGroupMap = buildZoneGroupMap(
+        zoneGroups === undefined
+            ? DEFAULT_ZONE_GROUPS
+            : zoneGroups
+    );
 
     const allVisits = days.flatMap(
         (day) => day.visits || []
@@ -1104,7 +1164,10 @@ export function validateVisitPlan({
                 (day.visits || []).map((visit) =>
                     visit.zone !== undefined
                         ? visit.zone
-                        : normalizeBrick(visit.brick)
+                        : getDoctorZone(
+                              visit,
+                              zoneGroupMap
+                          )
                 )
             ),
         ];
@@ -1179,7 +1242,15 @@ export function generateVisitPlan({
     workingDays,
     holidays = [],
     meetings = [],
+    callRate,
+    zoneGroups,
 }) {
+    const zoneGroupMap = buildZoneGroupMap(
+        zoneGroups === undefined
+            ? DEFAULT_ZONE_GROUPS
+            : zoneGroups
+    );
+
     const availableDates = getDateList({
         startDate,
         endDate,
@@ -1194,7 +1265,9 @@ export function generateVisitPlan({
         0
     );
 
-    const effectiveCallRate = TARGET_CALL_RATE;
+    // الكول ريت المدخل من الإعدادات هو متوسط الزيارات
+    // اليومية المستهدف؛ عند غيابه نستخدم الافتراضي.
+    const effectiveCallRate = sanitizeCallRate(callRate);
 
     if (availableDates.length === 0) {
         return {
@@ -1237,9 +1310,9 @@ export function generateVisitPlan({
     }
 
     // لا نشترط حداً أدنى لعدد الزيارات في اليوم.
-    // نوزع الزيارات حول متوسط 12.5، مع الحفاظ على تكرار كل دكتور،
-    // والـ16 تبقى سقفاً فقط وليست هدفاً إلزامياً.
-    const targetLoad = TARGET_CALL_RATE;
+    // نوزع الزيارات حول متوسط الكول ريت المستهدف، مع الحفاظ على
+    // تكرار كل دكتور، والحد الأقصى يبقى سقفاً فقط وليس هدفاً إلزامياً.
+    const targetLoad = effectiveCallRate;
 
     // تقدير الحد الأدنى من الأيام لكل منطقة: يكفي لسعة 16 زيارة
     // في اليوم، ولا يقل عن أكبر فريكونسي في المنطقة لأن زيارات
@@ -1247,7 +1320,10 @@ export function generateVisitPlan({
     const brickRequirements = new Map();
 
     for (const doctor of doctors) {
-        const brick = getDoctorZone(doctor);
+        const brick = getDoctorZone(
+            doctor,
+            zoneGroupMap
+        );
         const frequency = getDoctorFrequency(doctor);
 
         if (!brickRequirements.has(brick)) {
@@ -1308,7 +1384,10 @@ export function generateVisitPlan({
                 _index: index,
                 _key: getDoctorKey(doctor, index),
                 _frequency: frequency,
-                _brick: getDoctorZone(doctor),
+                _brick: getDoctorZone(
+                    doctor,
+                    zoneGroupMap
+                ),
                 _combinations:
                     combinationsByFrequency.get(
                         frequency
@@ -1386,6 +1465,7 @@ export function generateVisitPlan({
                 preparedDoctors,
                 availableDates,
                 seed: partitionAttempt,
+                targetRate: effectiveCallRate,
             });
 
             if (
@@ -1465,6 +1545,7 @@ export function generateVisitPlan({
         workingDays,
         holidays,
         meetings,
+        zoneGroups,
     });
 
     // عدم اكتمال الخطة (زيارات ناقصة) يظهر في قسم الأخطاء بالأسفل،
@@ -1544,12 +1625,12 @@ export function generateVisitPlan({
 
         callRate: effectiveCallRate,
 
-        targetCallRate: TARGET_CALL_RATE,
+        targetCallRate: effectiveCallRate,
 
         callRateDifference: Number(
             (
                 averageVisitsPerDay -
-                TARGET_CALL_RATE
+                effectiveCallRate
             ).toFixed(2)
         ),
 
@@ -1591,11 +1672,11 @@ export function generateVisitPlan({
 
     if (
         Math.abs(
-            averageVisitsPerDay - TARGET_CALL_RATE
+            averageVisitsPerDay - effectiveCallRate
         ) > 0.5
     ) {
         warnings.push(
-            `متوسط الزيارات ${averageVisitsPerDay.toFixed(2)}، وهو بعيد نسبياً عن المستهدف ${TARGET_CALL_RATE}. لم يتم تغيير تكرار زيارات الدكاترة لضبط المتوسط.`
+            `متوسط الزيارات ${averageVisitsPerDay.toFixed(2)}، وهو بعيد نسبياً عن المستهدف ${effectiveCallRate}. لم يتم تغيير تكرار زيارات الدكاترة لضبط المتوسط.`
         );
     }
 

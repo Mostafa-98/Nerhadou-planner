@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import {
   CalendarDays,
   CalendarCheck,
@@ -18,6 +20,9 @@ const weekDays = [
 
 function Settings({
   callRate,
+  handleCallRateChange,
+  zoneGroups,
+  setZoneGroups,
   workingDays,
   toggleWorkingDay,
   holidays,
@@ -37,6 +42,57 @@ function Settings({
   setPlanEndDate,
   planCalculation,
 }) {
+  const [groupInputs, setGroupInputs] = useState({});
+
+  const updateGroupInput = (groupIndex, value) => {
+    setGroupInputs((current) => ({
+      ...current,
+      [groupIndex]: value,
+    }));
+  };
+
+  const addBrickToGroup = (groupIndex) => {
+    const brick = (groupInputs[groupIndex] || "").trim();
+
+    if (!brick) return;
+
+    setZoneGroups((current) =>
+      current.map((group, index) => {
+        const without = group.filter((item) => item !== brick);
+
+        if (index === groupIndex) {
+          return [...without, brick];
+        }
+
+        return without;
+      })
+    );
+
+    updateGroupInput(groupIndex, "");
+  };
+
+  const removeBrickFromGroup = (groupIndex, brick) => {
+    setZoneGroups((current) =>
+      current
+        .map((group, index) =>
+          index === groupIndex
+            ? group.filter((item) => item !== brick)
+            : group
+        )
+        .filter((group) => group.length > 0)
+    );
+  };
+
+  const addGroup = () => {
+    setZoneGroups((current) => [...current, ["منطقة جديدة"]]);
+  };
+
+  const removeGroup = (groupIndex) => {
+    setZoneGroups((current) =>
+      current.filter((_, index) => index !== groupIndex)
+    );
+  };
+
   return (
     <div className="settings-page">
       <div className="welcome-section">
@@ -64,11 +120,13 @@ function Settings({
           <div className="setting-input">
             <input
               type="number"
-              min="12.5"
-              max="12.5"
-              step="0.1"
+              min="1"
+              max="15"
+              step="0.5"
               value={callRate}
-              readOnly
+              onChange={(event) =>
+                handleCallRateChange(event.target.value)
+              }
               placeholder="12.5"
             />
 
@@ -79,9 +137,97 @@ function Settings({
         <div className="setting-note">
           <strong>معلومة مهمة</strong>
           <p>
-            Call Rate = 12.5 هو متوسط مستهدف لفترة البلان.
-            الحد الأقصى اليومي المسموح به هو 15 زيارة،
-            ولا يتم تقليل تكرار زيارات الدكاترة للوصول إليه.
+            Call Rate هو متوسط الزيارات المستهدف يومياً لفترة
+            البلان، والبلان بيتوزع حواليه. الحد الأقصى اليومي
+            المسموح به هو 15 زيارة، ولا يتم تقليل تكرار زيارات
+            الدكاترة للوصول إليه.
+          </p>
+        </div>
+      </div>
+
+      {/* Zone Groups */}
+      <div className="panel settings-panel">
+        <div className="panel-heading">
+          <h3>مجموعات المناطق</h3>
+          <span className="status">{zoneGroups.length} مجموعات</span>
+        </div>
+
+        <p className="section-description">
+          المناطق الموجودة في نفس المجموعة يمكن جدولتها مع بعض
+          في نفس اليوم. أي منطقة مش موجودة في أي مجموعة بتتجدول
+          في أيام لوحدها، والبلان مش هيخلط منطقتين بعيدتين في يوم واحد.
+        </p>
+
+        <div className="zone-groups-list">
+          {zoneGroups.map((group, groupIndex) => (
+            <div className="zone-group" key={groupIndex}>
+              <div className="zone-group-bricks">
+                {group.map((brick) => (
+                  <span className="zone-brick-chip" key={brick}>
+                    {brick}
+
+                    <button
+                      type="button"
+                      aria-label={`حذف ${brick}`}
+                      onClick={() =>
+                        removeBrickFromGroup(groupIndex, brick)
+                      }
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              <div className="zone-group-actions">
+                <input
+                  type="text"
+                  value={groupInputs[groupIndex] || ""}
+                  placeholder="أضف منطقة للمجموعة"
+                  onChange={(event) =>
+                    updateGroupInput(groupIndex, event.target.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      addBrickToGroup(groupIndex);
+                    }
+                  }}
+                />
+
+                <button
+                  type="button"
+                  className="zone-group-add-brick"
+                  aria-label="إضافة المنطقة"
+                  onClick={() => addBrickToGroup(groupIndex)}
+                >
+                  <Plus size={15} />
+                </button>
+
+                <button
+                  type="button"
+                  className="zone-group-delete"
+                  aria-label="حذف المجموعة"
+                  onClick={() => removeGroup(groupIndex)}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="zone-group-add">
+          <button type="button" onClick={addGroup}>
+            <Plus size={15} />
+            <span>مجموعة جديدة</span>
+          </button>
+        </div>
+
+        <div className="setting-note">
+          <strong>معلومة مهمة</strong>
+          <p>
+            البلان لا يخلط أبداً مناطق من مجموعتين مختلفتين في
+            نفس اليوم، فأضف هنا فقط المناطق القريبة فعلاً من بعضها.
           </p>
         </div>
       </div>
