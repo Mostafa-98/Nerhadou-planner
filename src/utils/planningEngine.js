@@ -750,7 +750,14 @@ export function runPlanningAttempt({
         }
 
         const combinations =
-            doctor._combinations.length > 0
+            doctor._minDate
+                ? generateEvenCombinations(
+                    availableDates.filter(
+                        (entry) => entry.date >= doctor._minDate
+                    ),
+                    doctor._frequency
+                )
+                : doctor._combinations.length > 0
                 ? doctor._combinations
                 : generateEvenCombinations(
                     availableDates,
@@ -1017,21 +1024,32 @@ export function runPartitionedAttempt({
                 continue;
             }
 
-            if (
-                !combosByFrequency.has(doctor._frequency)
-            ) {
-                combosByFrequency.set(
-                    doctor._frequency,
-                    generateEvenCombinations(
-                        brickDates,
-                        doctor._frequency
-                    )
+            let combinations;
+
+            if (doctor._minDate) {
+                combinations = generateEvenCombinations(
+                    brickDates.filter(
+                        (entry) => entry.date >= doctor._minDate
+                    ),
+                    doctor._frequency
+                );
+            } else {
+                if (
+                    !combosByFrequency.has(doctor._frequency)
+                ) {
+                    combosByFrequency.set(
+                        doctor._frequency,
+                        generateEvenCombinations(
+                            brickDates,
+                            doctor._frequency
+                        )
+                    );
+                }
+
+                combinations = combosByFrequency.get(
+                    doctor._frequency
                 );
             }
-
-            const combinations = combosByFrequency.get(
-                doctor._frequency
-            );
 
             if (combinations.length === 0) {
                 failedDoctors.push(doctor);

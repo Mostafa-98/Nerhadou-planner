@@ -89,6 +89,38 @@ function Dashboard({ callRate, setActivePage }) {
     workingDays.length > 0 &&
     Boolean(planStartDate && planEndDate);
 
+  const [plan] = usePersistentState("visit-planner-plan-result", null);
+  const [actuals] = usePersistentState("visit-planner-actuals", {});
+
+  const todayMidnight = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  const gapAlerts = doctors
+    .map((doctor) => {
+      const key = doctor.id || doctor.name;
+      const doneDates = (plan ? plan.days : [])
+        .flatMap((day) => day.visits || [])
+        .filter(
+          (visit) =>
+            actuals[visit.id] &&
+            (visit.doctorId || visit.doctorName) === key
+        )
+        .map((visit) => visit.date)
+        .sort();
+      if (!doneDates.length) return null;
+      const last = new Date(doneDates[doneDates.length - 1] + "T00:00:00");
+      const daysSince = Math.round(
+        (todayMidnight - last) / 86400000
+      );
+      return { id: key, name: doctor.name, daysSince, lastDate: doneDates[doneDates.length - 1] };
+    })
+    .filter(Boolean)
+    .filter((entry) => entry.daysSince >= 20)
+    .sort((a, b) => b.daysSince - a.daysSince);
+
   return (
     <>
       <div className="welcome-section">
@@ -190,6 +222,35 @@ function Dashboard({ callRate, setActivePage }) {
           <small>{ar ? "المناطق المسجلة" : "Registered areas"}</small>
         </div>
       </div>
+
+      {gapAlerts.length > 0 && (
+        <div className="panel" style={{ marginBottom: 20 }}>
+          <div className="panel-heading">
+            <div>
+              <span className="panel-kicker">{ar ? "متابعة الزيارات" : "Visit tracking"}</span>
+              <h3>{ar ? "تنبيه فاصل الزيارات (25 يوم)" : "Visit gap alerts (25 days)"}</h3>
+            </div>
+            <CircleAlert size={22} />
+          </div>
+          <div className="schedule-list">
+            {gapAlerts.map((entry) => (
+              <div className="schedule-item" key={entry.id}>
+                <div className={`schedule-icon ${entry.daysSince >= 25 ? "holiday" : "meeting"}`}>
+                  <CircleAlert size={18} />
+                </div>
+                <div>
+                  <span>{entry.name}</span>
+                  <strong>
+                    {entry.daysSince >= 25
+                      ? (ar ? `تجاوز 25 يوم بدون زيارة (${entry.daysSince} يوم)` : `Over 25 days without a visit (${entry.daysSince} days)`)
+                      : (ar ? `اقترب من 25 يوم بدون زيارة (${entry.daysSince} يوم)` : `Approaching 25 days without a visit (${entry.daysSince} days)`)}
+                  </strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Content Panels */}
       <div className="dashboard-grid">
