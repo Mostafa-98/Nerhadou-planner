@@ -29,6 +29,9 @@ self.onmessage = (event) => {
             holidays: payload.holidays,
             meetings: payload.meetings,
             zoneGroups: payload.zoneGroups,
+            allowedMixedDays: new Set(
+                (result.sharedDayExceptions || []).map((x) => x.date)
+            ),
         });
 
         // عند عدم اكتمال الخطة، أسماء الدكاترة الناقصين معروضة بالفعل

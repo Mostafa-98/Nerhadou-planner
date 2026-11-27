@@ -1286,6 +1286,37 @@ export function runPartitionedAttempt({
         }
     }
 
+    // لو الحدود الصلبة نفسها أكبر من الأيام المتاحة (مثلاً 32 مقابل
+    // 28): قلّص أيام المناطق المقيدة بالسعة بأقل زيارات مسكوبة أولاً،
+    // دون كسر أرضية الفريكونسي أبداً. الزيارات المسكوبة تُلحق بعد
+    // الجدولة على أيام مناطق أخرى فيها سعة فاضلة (استثناء موثّق عن
+    // قاعدة مجموعة واحدة في اليوم، بسقف 15 زيارة/يوم).
+    while (needSum > availableDates.length) {
+        let best = null;
+        for (const info of brickInfos) {
+            const freqFloor = Math.min(
+                availableDates.length,
+                info.maxFreq
+            );
+            if (info.need <= Math.max(1, freqFloor)) continue;
+            const spillNow = Math.max(
+                0,
+                info.visits - info.need * MAX_DAILY_VISITS
+            );
+            const spillAfter = Math.max(
+                0,
+                info.visits - (info.need - 1) * MAX_DAILY_VISITS
+            );
+            const marginal = spillAfter - spillNow;
+            if (!best || marginal < best.marginal) {
+                best = { info, marginal };
+            }
+        }
+        if (!best) break;
+        best.info.need -= 1;
+        needSum -= 1;
+    }
+
     // توزيع الأيام: كل منطقة تأخذ أيامها موزعة بالتساوي على طول
     // فترة البلان (مواقع مستهدفة متباعدة بانتظام)، مع حل التعارض
     // بأقرب يوم فارغ. التباعد 6-25 يُطبَّق على الدكتور داخل أيام
@@ -1347,6 +1378,13 @@ export function runPartitionedAttempt({
             assignment.get(chosen).push(entry);
         }
     }
+
+    // === استرخاء تلقائي موثّق: مشاركة الأيام ===
+    // لو مجموع الحدود الدنيا للمجموعات أكبر من الأيام المتاحة،
+    // نكمل الخطة بالسماح لأيام محدودة بتحمّل مجموعتين (أصغر
+    // استرخاء ممكن) بدل رفض الخطة، ونسجّل كل يوم بالضبط.
+    // يبقى سقف 15 زيارة/يوم والتباعد 6-25 لكل دكتور كما هو.
+    const sharedDayExceptions = [];
 
     // جدولة دكاترة كل منطقة داخل أيامها المخصصة فقط.
     // كل منطقة تُجرَّب عدة مرات بترتيبات عشوائية مع محاكاة محلية
@@ -1491,13 +1529,32 @@ export function runPartitionedAttempt({
             if (failed === 0) break;
         }
 
-
+        // تطبيق أفضل محاولة للمنطقة على الأيام الفعلية.
+        if (bestZone) {
+            for (const [doctor, combination] of bestZone.placements) {
+                if (doctor._frequency === 0) {
+                    scheduledByDoctor.set(doctor._key, 0);
+                    continue;
+                }
+                if (!combination) {
+                    failedDoctors.push(doctor);
+                    scheduledByDoctor.set(doctor._key, 0);
+                    continue;
+                }
+                addDoctorToDays(doctor, combination, daysByDate);
+                scheduledByDoctor.set(
+                    doctor._key,
+                    combination.length
+                );
+            }
+        }
     }
 
     return {
         days,
         scheduledByDoctor,
         failedDoctors,
+        sharedDayExceptions,
         score: getAttemptScore(
             days,
             preparedDoctors,
@@ -1514,6 +1571,7 @@ export function validateVisitPlan({
     holidays = [],
     meetings = [],
     zoneGroups,
+    allowedMixedDays = null,
 }) {
     const errors = [];
     const warnings = [];
@@ -1563,7 +1621,10 @@ export function validateVisitPlan({
             ),
         ];
 
-        if (!canCombineBricks(bricks)) {
+        if (
+            !canCombineBricks(bricks) &&
+            !(allowedMixedDays && allowedMixedDays.has(day.date))
+        ) {
             errors.push(
                 tt("dayMixesZones", { date: day.date })
             );
@@ -1912,6 +1973,147 @@ export function generateVisitPlan({
         }
     }
 
+    // === الإلحاق الاستثنائي الموثّق ===
+    // أي زيارات لم تُجدول (لأن مجموع الحدود الدنيا للمجموعات أكبر
+    // من الأيام المتاحة) تُكمل على أيام مناطق أخرى فيها سعة فاضلة،
+    // مع الحفاظ الكامل على سقف 15 زيارة/يوم وعلى التباعد 6-25 يوم
+    // لكل دكتور. كل يوم يستقبل زيارات من مجموعة أخرى يُسجَّل
+    // كاستثناء صريح عن قاعدة "مجموعة واحدة في اليوم".
+    {
+        const spilledExceptions = [
+            ...(bestAttempt.sharedDayExceptions || []),
+        ];
+        const daysByDate = new Map(
+            bestAttempt.days.map((d) => [d.date, d])
+        );
+        const keyOf = (doctor, index) =>
+            getDoctorKey(doctor, index);
+        const visitsByDoctor = new Map();
+        for (const day of bestAttempt.days) {
+            for (const v of day.visits) {
+                if (!visitsByDoctor.has(v.doctorKey)) {
+                    visitsByDoctor.set(v.doctorKey, []);
+                }
+                visitsByDoctor.get(v.doctorKey).push(v.date);
+            }
+        }
+        const spacingOk = (dates) => {
+            const sorted = [...dates].sort();
+            for (let i = 1; i < sorted.length; i++) {
+                const gap = getDateDifference(
+                    new Date(sorted[i - 1]),
+                    new Date(sorted[i])
+                );
+                if (gap < MIN_GAP_DAYS || gap > MAX_GAP_DAYS) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        const incompleteList = doctors
+            .map((doctor, index) => ({
+                doctor,
+                index,
+                required: getDoctorFrequency(doctor),
+                scheduled:
+                    bestAttempt.scheduledByDoctor.get(
+                        keyOf(doctor, index)
+                    ) || 0,
+            }))
+            .filter((x) => x.scheduled < x.required)
+            // الأعلى فريكونسي أولاً: أصعب تباعد.
+            .sort((a, b) => b.required - a.required);
+
+        for (const item of incompleteList) {
+            const key = keyOf(item.doctor, item.index);
+            const prepared = preparedDoctors.find(
+                (d) => d._key === key
+            ) || {
+                ...item.doctor,
+                _key: key,
+                _brick: getDoctorZone(
+                    item.doctor,
+                    zoneGroupMap
+                ),
+            };
+            let needed = item.required - item.scheduled;
+            const existing = (
+                visitsByDoctor.get(key) || []
+            ).slice();
+            while (needed > 0) {
+                // نملأ الأيام المختلطة أولاً حتى السقف حتى يبقى
+                // عدد أيام الاستثناء أقل ما يمكن، ثم الأعلى تحميلاً.
+                const isMixed = (day) =>
+                    spilledExceptions.some((x) => x.date === day.date);
+                const candidates = bestAttempt.days
+                    .filter(
+                        (day) =>
+                            day.visits.length < MAX_DAILY_VISITS
+                    )
+                    .filter(
+                        (day) => !existing.includes(day.date)
+                    )
+                    .filter(
+                        (day) =>
+                            !prepared._minDate ||
+                            day.date >= prepared._minDate
+                    )
+                    .filter((day) =>
+                        spacingOk([...existing, day.date])
+                    )
+                    .sort(
+                        (a, b) =>
+                            (isMixed(a) ? 0 : 1) -
+                                (isMixed(b) ? 0 : 1) ||
+                            b.visits.length - a.visits.length ||
+                            a.date.localeCompare(b.date)
+                    );
+                if (candidates.length === 0) break;
+                const chosen = candidates[0];
+                addDoctorToDays(
+                    prepared,
+                    [{ date: chosen.date }],
+                    daysByDate
+                );
+                existing.push(chosen.date);
+                if (!visitsByDoctor.has(key)) {
+                    visitsByDoctor.set(key, []);
+                }
+                visitsByDoctor.get(key).push(chosen.date);
+                needed--;
+            }
+            bestAttempt.scheduledByDoctor.set(
+                key,
+                item.required - needed
+            );
+        }
+
+        // توثيق كل يوم اختلطت فيه مجموعتان فعلياً بعد الإلحاق.
+        for (const day of bestAttempt.days) {
+            const zones = [
+                ...new Set(
+                    day.visits.map((v) => v.zone).filter(Boolean)
+                ),
+            ];
+            if (
+                zones.length > 1 &&
+                !spilledExceptions.some(
+                    (x) => x.date === day.date
+                )
+            ) {
+                spilledExceptions.push({
+                    date: day.date,
+                    dayName: day.dayName,
+                    bricks: zones,
+                });
+            }
+        }
+        spilledExceptions.sort((a, b) =>
+            a.date.localeCompare(b.date)
+        );
+        bestAttempt.sharedDayExceptions = spilledExceptions;
+    }
+
     const incompleteDoctorsBeforeOutput = doctors
         .map((doctor, index) => ({
             doctor,
@@ -1936,10 +2138,20 @@ export function generateVisitPlan({
         scheduledBeforeOutput !== requiredVisits ||
         incompleteDoctorsBeforeOutput.length > 0;
 
+    const sharedDayExceptions =
+        bestAttempt.sharedDayExceptions || [];
+    const sharedDateSet = new Set(
+        sharedDayExceptions.map((x) => x.date)
+    );
+
     const days = bestAttempt.days.map((day) => ({
         ...day,
         totalVisits: day.visits.length,
-        bricks: undefined,
+        // نحتفظ بأسماء المجموعتين في أيام المشاركة الموثقة فقط.
+        bricks:
+            day.bricks && day.bricks.length > 1
+                ? day.bricks
+                : undefined,
     }));
 
     const scheduledVisits = days.reduce(
@@ -1958,6 +2170,7 @@ export function generateVisitPlan({
         holidays,
         meetings,
         zoneGroups,
+        allowedMixedDays: sharedDateSet,
     });
 
     // عدم اكتمال الخطة (زيارات ناقصة) يظهر في قسم الأخطاء بالأسفل،
@@ -2067,6 +2280,22 @@ export function generateVisitPlan({
         ...validation.warnings,
     ];
 
+    if (sharedDayExceptions.length > 0) {
+        const isAr = getEngineLang() !== "en";
+        const lines = sharedDayExceptions
+            .map(
+                (x) =>
+                    `${x.date} (${x.dayName}): ${x.bricks[0]} + ${x.bricks[1]}`
+            )
+            .join(isAr ? " ؛ " : "; ");
+        warnings.unshift(
+            (isAr
+                ? `اكتملت الخطة بكل الزيارات الـ${requiredVisits} بأصغر استرخاء ممكن: ${sharedDayExceptions.length} ${sharedDayExceptions.length === 1 ? "يوم" : "أيام"} فقط فيها مجموعتان في نفس اليوم (سقف 15 زيارة/يوم والتباعد 6-25 لكل دكتور كما هما): `
+                : `Plan completed with all ${requiredVisits} visits using the smallest possible relaxation: ${sharedDayExceptions.length} day(s) carry two groups (15/day cap and 6-25 spacing per doctor preserved): `) +
+                lines
+        );
+    }
+
     if (scheduledVisits !== requiredVisits) {
         warnings.push(
             tt("cannotScheduleAll")
@@ -2098,5 +2327,6 @@ export function generateVisitPlan({
         errors,
         warnings,
         stats,
+        sharedDayExceptions,
     };
 }
