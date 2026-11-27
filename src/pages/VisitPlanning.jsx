@@ -18,6 +18,7 @@ import {
 import { usePersistentState } from "../utils/usePersistentState";
 import { exportPlanToExcel, printPlanToPdf } from "../utils/planExporter";
 import { parseActualsFile, matchActuals } from "../utils/actualsImporter";
+import { ungroupedAreas } from "../utils/areaGrouping";
 import { validateVisitPlan } from "../utils/planningEngine";
 
 import { useI18n } from "../i18n";
@@ -483,6 +484,29 @@ function VisitPlanning({
                         ? (ar ? "جاري إنشاء الخطة..." : "Generating plan...") : (ar ? "إنشاء خطة الزيارات" : "Generate Visit Plan")}
                 </button>
             </div>
+
+            {(() => {
+                const ungrouped = ungroupedAreas(doctors, zoneGroups);
+                if (!doctors.length || !ungrouped.length) return null;
+                return (
+                    <div className="ungrouped-warning">
+                        <strong>
+                            {ar
+                                ? `${ungrouped.length} منطقة من ملفك بدون مجموعة`
+                                : `${ungrouped.length} sheet areas have no group`}
+                        </strong>
+                        <p>
+                            {ar
+                                ? "كل منطقة بدون مجموعة بتحتاج أيام لوحدها وده ممكن يخلي البلان ناقص أو الأيام فاضية. جمّع المناطق المتقاربة في مجموعات من صفحة الإعدادات (ممكن تلصق المجموعات كلها كنص). المناطق: "
+                                : "Each ungrouped area needs its own days, which can leave the plan incomplete or days underfilled. Group neighboring areas in Settings (you can paste all groups as text). Areas: "}
+                            {ungrouped.slice(0, 10).join(ar ? "، " : ", ")}
+                            {ungrouped.length > 10
+                                ? (ar ? ` و ${ungrouped.length - 10} أخرى` : ` and ${ungrouped.length - 10} more`)
+                                : ""}
+                        </p>
+                    </div>
+                );
+            })()}
 
             <div
                 className="settings-card"

@@ -1,4 +1,4 @@
-import { tt } from "../i18n/engineText.js";
+import { tt, getEngineLang } from "../i18n/engineText.js";
 const TARGET_CALL_RATE = 12.5;
 const MAX_DAILY_VISITS = 15;
 
@@ -21,29 +21,50 @@ function sanitizeCallRate(value) {
 }
 
 const BRICK_ALIASES = {
-    ashmoun: "اشمون",
+    sinnuris: "سنتريس",
+    senteris: "سنتريس",
+    sinnures: "سنتريس",
+    shohada: "الشهداء",
+    elshohada: "الشهداء",
+    sadat: "السادات",
+    elsadat: "السادات",
+    sadatcity: "السادات",
+    madinetsadat: "السادات",
+    sers: "سرس الليان",
+    serslayan: "سرس الليان",
+    sersellayan: "سرس الليان",
+    sersellyan: "سرس الليان",
+    menouf: "منوف",
     monouf: "منوف",
     menuf: "منوف",
+    tata: "تتا",
+    teta: "تتا",
+    shubrabloula: "شبرا بلوله",
+    shubrabaloula: "شبرا بلوله",
+    shobrabaloula: "شبرا بلوله",
+    shoubrabloula: "شبرا بلوله",
+    elmanshiya: "المنشيه",
+    elmanshia: "المنشيه",
+    manshiya: "المنشيه",
+    kafrfisha: "كفر فيشه",
+    kafrfisha: "كفر فيشه",
+    ashmoun: "اشمون",
+    ashmon: "اشمون",
+    talia: "طليا",
+    talya: "طليا",
+    samadoun: "سمدون",
+    samadon: "سمدون",
+    smadoun: "سمدون",
     bagour: "الباجور",
     baghour: "الباجور",
-    sadat: "السادات",
-    el_sadat: "السادات",
-    "el sadat": "السادات",
-    senteris: "سنتريس",
-    "astanha": "اسطنها",
-    "istanha": "اسطنها",
-    sers: "سرس",
-    "sers layan": "سرس",
-    shohada: "الشهداء",
-    "el shohada": "الشهداء",
-    talia: "طليا",
-    samadoun: "سمدون",
-    smadoun: "سمدون",
-    teta: "تتا",
-    "kafr fisha": "كفر فيشه",
-    "shobra baloula": "شبرا بلوله",
-    "bay arab": "بي العرب",
-    "madinet sadat": "السادات",
+    bagor: "الباجور",
+    bielarab: "بي العرب",
+    biolarab: "بي العرب",
+    biarab: "بي العرب",
+    bayarab: "بي العرب",
+    estanha: "اسطنها",
+    astanha: "اسطنها",
+    istanha: "اسطنها",
 };
 
 const WEEK_DAYS = {
@@ -78,28 +99,33 @@ const ARABIC_WEEK_DAYS = [
     "السبت",
 ];
 
-function normalizeBrick(value) {
+// تطبيع متسامح: يزيل التشكيل والتطويل، ويوحّد الألف والياء
+// والتاء المربوطة، ويطابق الإنجليزي بلا مسافات أو شرطات حتى
+// تتطابق اختلافات الهجاء بين الشيت والمجموعات الملصوقة.
+export function normalizeBrick(value) {
     const raw = String(value || "")
         .trim()
         .toLowerCase()
+        .replace(/[\u064B-\u0652\u0670]/g, "")
+        .replace(/ـ/g, "")
         .replace(/\s+/g, " ");
 
     if (!raw) {
         return "غير محدد";
     }
 
-    const englishName = raw
-        .replace(/[^a-z0-9 ]/g, "")
-        .trim();
+    const englishKey = raw.replace(/[^a-z0-9]/g, "");
 
-    if (BRICK_ALIASES[englishName]) {
-        return BRICK_ALIASES[englishName]
+    if (englishKey && BRICK_ALIASES[englishKey]) {
+        return BRICK_ALIASES[englishKey]
             .replace(/[أإآ]/g, "ا")
+            .replace(/ى/g, "ي")
             .replace(/ة/g, "ه");
     }
 
     return raw
         .replace(/[أإآ]/g, "ا")
+        .replace(/ى/g, "ي")
         .replace(/ة/g, "ه")
         .replace(/\s+/g, " ");
 }
@@ -860,12 +886,41 @@ export function runPlanningAttempt({
     };
 }
 
+
+// يبني اختيار أيام لدكتور في منطقة ممتلئة: يختار أقل الأيام امتلاءً
+// مع الحفاظ على فواصل 6-25 يوم بين زياراته، فيتوزع الحمل بالتساوي
+// بدل ما تمتلئ الأيام الأساسية ويبقى دكاترة بلا أماكن.
+function shuffleWithSeed(list, seed) {
+    const arr = [...list];
+    let s = seed || 1;
+    for (let i = arr.length - 1; i > 0; i--) {
+        s = (s * 1103515245 + 12345) % 2147483648;
+        const j = s % (i + 1);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+
+function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+        a |= 0;
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
 export function runPartitionedAttempt({
     preparedDoctors,
     availableDates,
     seed = 0,
     targetRate = TARGET_CALL_RATE,
 }) {
+    const rng = mulberry32((seed + 1) * 2654435761);
+
     const days = createEmptyDays(availableDates);
 
     const daysByDate = new Map(
@@ -885,7 +940,7 @@ export function runPartitionedAttempt({
         brickLists.get(doctor._brick).push(doctor);
     }
 
-    const brickInfos = [...brickLists.entries()]
+    let brickInfos = [...brickLists.entries()]
         .map(([brick, list]) => {
             const visits = list.reduce(
                 (sum, doctor) => sum + doctor._frequency,
@@ -899,6 +954,7 @@ export function runPartitionedAttempt({
                 brick,
                 list,
                 visits,
+                maxFreq,
                 need: Math.min(
                     availableDates.length,
                     Math.max(
@@ -914,85 +970,125 @@ export function runPartitionedAttempt({
 
     brickInfos.sort((a, b) => b.need - a.need);
 
-    // توزيع الأيام على المناطق بالتساوي على طول فترة البلان،
-    // حتى تكون أيام كل منطقة متباعدة وتسمح بفواصل 6-25 يوم.
-    const assignment = new Map(
-        brickInfos.map((info) => [info.brick, []])
+    // تدوير ترتيب المناطق حسب البذرة حتى تستكشف المحاولات المختلفة
+    // توزيعات أيام مختلفة.
+    if (brickInfos.length > 0) {
+        const rot = seed % brickInfos.length;
+        brickInfos = [
+            ...brickInfos.slice(rot),
+            ...brickInfos.slice(0, rot),
+        ];
+    }
+
+    // رفع الحد الأدنى للأيام: القسمة على 15 تعطي سعة نظرية لا تتحقق
+    // عملياً بسبب شرط التباعد 6-25، فيُقسَّم على معدل أقرب للواقع.
+    const totalVisits = brickInfos.reduce(
+        (sum, info) => sum + info.visits,
+        0
     );
-
-    const rotation =
-        brickInfos.length > 0
-            ? seed % brickInfos.length
-            : 0;
-
-    const order = [
-        ...brickInfos.slice(rotation),
-        ...brickInfos.slice(0, rotation),
-    ];
-
-    const remaining = new Map(
-        order.map((info) => [info.brick, info.need])
+    const divisor = Math.max(
+        12,
+        Math.ceil(totalVisits / Math.max(1, availableDates.length))
     );
-
-    const dealSequence = [];
-    let active = true;
-
-    while (active) {
-        active = false;
-
-        for (const info of order) {
-            if ((remaining.get(info.brick) || 0) > 0) {
-                dealSequence.push(info.brick);
-                remaining.set(
-                    info.brick,
-                    remaining.get(info.brick) - 1
-                );
-                active = true;
-            }
+    for (const info of brickInfos) {
+        info.need = Math.min(
+            availableDates.length,
+            Math.max(info.need, Math.ceil(info.visits / divisor))
+        );
+    }
+    // لو تجاوز الإجمالي الأيام المتاحة، خفِّض الأكبر أولاً دون كسر
+    // الحد الأدنى الصلب (السعة 15/يوم والفريكونسي الأقصى).
+    const hardFloor = (info) =>
+        Math.min(
+            availableDates.length,
+            Math.max(
+                Math.ceil(info.visits / MAX_DAILY_VISITS),
+                info.maxFreq
+            )
+        );
+    let needSum = brickInfos.reduce((s, i) => s + i.need, 0);
+    if (needSum > availableDates.length) {
+        for (const info of [...brickInfos].sort(
+            (a, b) => b.need - a.need
+        )) {
+            if (needSum <= availableDates.length) break;
+            const reducible = info.need - hardFloor(info);
+            const cut = Math.min(
+                reducible,
+                needSum - availableDates.length
+            );
+            info.need -= cut;
+            needSum -= cut;
         }
     }
 
-    const total = dealSequence.length;
-    const usedIndexes = new Set();
+    // توزيع الأيام: كل منطقة تأخذ أيامها موزعة بالتساوي على طول
+    // فترة البلان (مواقع مستهدفة متباعدة بانتظام)، مع حل التعارض
+    // بأقرب يوم فارغ. التباعد 6-25 يُطبَّق على الدكتور داخل أيام
+    // توزيع الأيام على مرحلتين:
+    // 1) أيام أساسية لكل منطقة متباعدة 6+ حتى تجد الفريكونسي العالي
+    //    فواصل صحيحة. الأولوية لأكبر عدد أيام متبقية.
+    // 2) الأيام المتبقية للمناطق صاحبة أكبر عجز في السعة.
+    const assignment = new Map(
+        brickInfos.map((info) => [info.brick, []])
+    );
+    const assignedCount = new Map(
+        brickInfos.map((info) => [info.brick, 0])
+    );
+    const lastAssignedIndex = new Map();
+    const leftoverDates = [];
 
-    dealSequence.forEach((brick, k) => {
-        let position =
-            total === 1
-                ? Math.floor(
-                    (availableDates.length - 1) / 2
-                )
-                : Math.round(
-                    (k * (availableDates.length - 1)) /
-                    (total - 1)
-                );
+    availableDates.forEach((entry, idx) => {
+        let chosen = null;
+        let bestRemaining = -1;
 
-        while (
-            position < availableDates.length &&
-            usedIndexes.has(position)
-        ) {
-            position++;
-        }
+        for (const info of brickInfos) {
+            const count = assignedCount.get(info.brick);
+            if (count >= info.need) continue;
 
-        if (position >= availableDates.length) {
-            position = availableDates.length - 1;
+            const last = lastAssignedIndex.has(info.brick)
+                ? lastAssignedIndex.get(info.brick)
+                : -Infinity;
+            if (idx - last < MIN_GAP_DAYS) continue;
 
-            while (
-                position >= 0 &&
-                usedIndexes.has(position)
-            ) {
-                position--;
+            const remainingNeed = info.need - count;
+            if (remainingNeed > bestRemaining) {
+                bestRemaining = remainingNeed;
+                chosen = info.brick;
             }
         }
 
-        if (position >= 0) {
-            usedIndexes.add(position);
-            assignment
-                .get(brick)
-                .push(availableDates[position]);
+        if (chosen) {
+            assignment.get(chosen).push(entry);
+            assignedCount.set(chosen, assignedCount.get(chosen) + 1);
+            lastAssignedIndex.set(chosen, idx);
+        } else {
+            leftoverDates.push(entry);
         }
     });
 
+    for (const entry of leftoverDates) {
+        let chosen = null;
+        let bestDeficit = 0;
+        for (const info of brickInfos) {
+            const deficit =
+                info.visits -
+                assignment.get(info.brick).length * MAX_DAILY_VISITS;
+            if (deficit > bestDeficit) {
+                bestDeficit = deficit;
+                chosen = info.brick;
+            }
+        }
+        if (chosen) {
+            assignment.get(chosen).push(entry);
+        }
+    }
+
     // جدولة دكاترة كل منطقة داخل أيامها المخصصة فقط.
+    // كل منطقة تُجرَّب عدة مرات بترتيبات عشوائية مع محاكاة محلية
+    // للأحمال، ونحتفظ بأفضل محاولة (أقل دكاترة غير مكتملين).
+    const ZONE_ATTEMPTS = 40;
+
     for (const info of brickInfos) {
         const brickDates = assignment.get(info.brick);
 
@@ -1006,118 +1102,132 @@ export function runPartitionedAttempt({
 
         const targetLoad = Math.min(
             MAX_DAILY_VISITS,
-            Math.max(
-                1,
-                info.visits / brickDates.length
-            )
+            Math.max(1, info.visits / brickDates.length)
         );
+
+        const tightZone =
+            info.visits >
+            brickDates.length * MAX_DAILY_VISITS * 0.8;
 
         const combosByFrequency = new Map();
 
-        const ordered = [...info.list].sort(
-            (a, b) => b._frequency - a._frequency
-        );
-
-        for (const doctor of ordered) {
-            if (doctor._frequency === 0) {
-                scheduledByDoctor.set(doctor._key, 0);
-                continue;
-            }
-
-            let combinations;
-
+        const combosFor = (doctor) => {
             if (doctor._minDate) {
-                combinations = generateEvenCombinations(
+                return generateEvenCombinations(
                     brickDates.filter(
                         (entry) => entry.date >= doctor._minDate
                     ),
                     doctor._frequency
                 );
-            } else {
-                if (
-                    !combosByFrequency.has(doctor._frequency)
-                ) {
-                    combosByFrequency.set(
-                        doctor._frequency,
-                        generateEvenCombinations(
-                            brickDates,
-                            doctor._frequency
-                        )
-                    );
-                }
+            }
+            if (!combosByFrequency.has(doctor._frequency)) {
+                combosByFrequency.set(
+                    doctor._frequency,
+                    generateEvenCombinations(
+                        brickDates,
+                        doctor._frequency
+                    )
+                );
+            }
+            return combosByFrequency.get(doctor._frequency);
+        };
 
-                combinations = combosByFrequency.get(
-                    doctor._frequency
+        const baseOrder = [...info.list].sort(
+            (a, b) => b._frequency - a._frequency
+        );
+
+        let bestZone = null;
+
+        for (let zoneAttempt = 0; zoneAttempt < ZONE_ATTEMPTS; zoneAttempt++) {
+            const order =
+                zoneAttempt === 0
+                    ? baseOrder
+                    : shuffleWithSeed(
+                          baseOrder,
+                          zoneAttempt * 7919 + info.visits
+                      );
+
+            const loads = new Map();
+            for (const entry of brickDates) {
+                loads.set(
+                    entry.date,
+                    daysByDate.get(entry.date).visits.length
                 );
             }
 
-            if (combinations.length === 0) {
-                failedDoctors.push(doctor);
-                scheduledByDoctor.set(doctor._key, 0);
-                continue;
-            }
+            const placements = [];
+            let failed = 0;
 
-            const offset = Math.floor(
-                Math.random() * combinations.length
-            );
+            for (const doctor of order) {
+                if (doctor._frequency === 0) {
+                    placements.push([doctor, null]);
+                    continue;
+                }
 
-            const candidates = [
-                ...combinations.slice(offset),
-                ...combinations.slice(0, offset),
-            ];
+                const combinations = combosFor(doctor);
 
-            let bestCombination = null;
-            let bestCost = Infinity;
+                let bestCombination = null;
+                let bestCost = Infinity;
+                const offset = Math.floor(
+                    rng() * (combinations.length || 1)
+                );
+                const candidates = [
+                    ...combinations.slice(offset),
+                    ...combinations.slice(0, offset),
+                ];
 
-            for (const combination of candidates) {
-                let totalCost = 0;
-                let valid = true;
+                for (const combination of candidates) {
+                    let totalCost = 0;
+                    let valid = true;
 
-                for (const date of combination) {
-                    const day = daysByDate.get(date.date);
-                    const load = day.visits.length;
+                    for (const date of combination) {
+                        const load = loads.get(date.date);
 
-                    if (load >= MAX_DAILY_VISITS) {
-                        valid = false;
-                        break;
+                        if (load >= MAX_DAILY_VISITS) {
+                            valid = false;
+                            break;
+                        }
+
+                        if (tightZone) {
+                            totalCost += load;
+                        } else {
+                            const before = Math.pow(
+                                load - targetLoad,
+                                2
+                            );
+                            const after = Math.pow(
+                                load + 1 - targetLoad,
+                                2
+                            );
+                            totalCost += after - before;
+                        }
                     }
 
-                    const before = Math.pow(
-                        load - targetLoad,
-                        2
-                    );
-
-                    const after = Math.pow(
-                        load + 1 - targetLoad,
-                        2
-                    );
-
-                    totalCost += after - before;
+                    if (valid && totalCost < bestCost) {
+                        bestCost = totalCost;
+                        bestCombination = combination;
+                    }
                 }
 
-                if (valid && totalCost < bestCost) {
-                    bestCost = totalCost;
-                    bestCombination = combination;
+                if (!bestCombination) {
+                    failed += 1;
+                    placements.push([doctor, null]);
+                    continue;
+                }
+
+                placements.push([doctor, bestCombination]);
+                for (const date of bestCombination) {
+                    loads.set(date.date, loads.get(date.date) + 1);
                 }
             }
 
-            if (!bestCombination) {
-                failedDoctors.push(doctor);
-                scheduledByDoctor.set(doctor._key, 0);
-                continue;
+            if (!bestZone || failed < bestZone.failed) {
+                bestZone = { failed, placements };
             }
-
-            addDoctorToDays(
-                doctor,
-                bestCombination,
-                daysByDate
-            );
-
-            scheduledByDoctor.set(
-                doctor._key,
-                bestCombination.length
-            );
+            if (failed === 0) break;
         }
+
+
     }
 
     return {
@@ -1360,18 +1470,39 @@ export function generateVisitPlan({
 
     let minimumBrickDays = 0;
 
-    for (const info of brickRequirements.values()) {
+    const brickDayDetails = [];
+
+    for (const [brick, info] of brickRequirements.entries()) {
         if (info.visits === 0) continue;
 
-        minimumBrickDays += Math.max(
+        const days = Math.max(
             Math.ceil(info.visits / MAX_DAILY_VISITS),
             info.maxFrequency
         );
+        minimumBrickDays += days;
+        brickDayDetails.push({ brick, days });
     }
+
+    brickDayDetails.sort((a, b) => b.days - a.days);
 
     const capacityWarning =
         minimumBrickDays > availableDates.length
-            ? tt("notEnoughDaysForZones", { available: availableDates.length, minimum: minimumBrickDays })
+            ? tt("notEnoughDaysForZones", { available: availableDates.length, minimum: minimumBrickDays }) +
+              " " +
+              tt("notEnoughDaysForZonesDetail", {
+                  details: brickDayDetails
+                      .map((d) =>
+                          tt("notEnoughDaysForZonesZone", {
+                              zone: d.brick,
+                              days: d.days,
+                          })
+                      )
+                      .join(getEngineLang() === "en" ? ", " : "، "),
+              }) +
+              " " +
+              tt("notEnoughDaysForZonesAdvice", {
+                  biggest: brickDayDetails[0]?.brick || "",
+              })
             : null;
 
     let bestAttempt = null;

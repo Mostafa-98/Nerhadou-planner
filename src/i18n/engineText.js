@@ -46,6 +46,18 @@ const M = {
     ar: "عدد أيام العمل المتاحة ({available}) أقل من الحد الأدنى اللازم لتغطية المناطق بالفريكونسي المطلوب ({minimum} يوم على الأقل)",
     en: "Available working days ({available}) are fewer than the minimum needed to cover the areas at the required frequency ({minimum} days at least)",
   },
+  notEnoughDaysForZonesDetail: {
+    ar: "الحد الأدنى لكل مجموعة: {details}.",
+    en: "Minimum days per group: {details}.",
+  },
+  notEnoughDaysForZonesZone: {
+    ar: "{zone}: {days} يوم",
+    en: "{zone}: {days}d",
+  },
+  notEnoughDaysForZonesAdvice: {
+    ar: "كل مجموعة مناطق تحتاج أياماً خاصة بها (يوم واحد لكل مجموعة، بحد أقصى 15 زيارة في اليوم، وبفاصل 6-25 يوم بين زيارات الدكتور الواحد). أكبر مجموعة ترفع الحد الأدنى هي: {biggest}. لتغطية كل الزيارات: ادمج مناطق أكثر داخل مجموعات أقل، أو قلل الفريكونسي لبعض الدكاترة، أو مدد فترة البلان.",
+    en: "Each area group needs its own days (one group per day, max 15 visits per day, 6-25 day gaps between a doctor's visits). The group driving the minimum most: {biggest}. To cover all visits: merge more areas into fewer groups, lower some doctors' frequency, or extend the plan period.",
+  },
   planIncomplete: {
     ar: "الخطة غير مكتملة: تم توزيع {scheduled} من أصل {required} زيارة. الزيارات الناقصة موضحة بالأسفل.",
     en: "Plan is incomplete: {scheduled} of {required} visits scheduled. The missing visits are listed below.",

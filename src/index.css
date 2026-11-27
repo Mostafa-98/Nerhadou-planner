@@ -2240,3 +2240,20 @@ textarea:focus-visible {
 .import-preview { border: 1px solid var(--border, #e2e8f0); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; background: var(--surface, #fff); }
 .import-preview h4 { margin: 0 0 6px; font-size: 15px; }
 .import-preview p { margin: 0 0 10px; color: var(--muted, #64748b); font-size: 13px; }
+
+/* Paste-groups box + ungrouped chips */
+.paste-groups-box { margin-bottom: 16px; }
+.paste-groups-box label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.paste-groups-box textarea { width: 100%; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: 13px; resize: vertical; background: var(--surface, #fff); color: inherit; }
+.paste-preview { margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 10px; }
+.paste-warning { color: #b45309; font-size: 13px; margin: 6px 0 0; }
+.zone-group { cursor: pointer; }
+.zone-group-selected { outline: 2px solid #246da9; border-radius: 12px; }
+.zone-brick-add { cursor: pointer; border: 1px dashed #246da9; background: transparent; color: #246da9; font: inherit; display: inline-flex; align-items: center; gap: 4px; }
+.ungrouped-areas { margin-top: 14px; }
+.ungrouped-areas p { font-size: 13px; color: #b45309; margin: 0 0 8px; }
+/* Ungrouped-areas warning on Visit Planning */
+.ungrouped-warning { border: 1px solid #f59e0b; background: #fffbeb; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; }
+[data-theme='dark'] .ungrouped-warning { background: rgba(245,158,11,.12); }
+.ungrouped-warning strong { display: block; margin-bottom: 4px; }
+.ungrouped-warning p { margin: 0; font-size: 13px; }

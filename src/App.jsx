@@ -320,6 +320,7 @@ function App() {
               handleCallRateChange={handleCallRateChange}
               zoneGroups={zoneGroups}
               setZoneGroups={setZoneGroups}
+              doctors={doctors}
               workingDays={workingDays}
               toggleWorkingDay={toggleWorkingDay}
               holidays={holidays}

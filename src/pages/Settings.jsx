@@ -13,7 +13,9 @@ import {
   Database,
   Download,
   Upload,
+  ClipboardPaste,
 } from "lucide-react";
+import { parseGroupsText, ungroupedAreas } from "../utils/areaGrouping";
 
 const weekDays = [
   "السبت",
@@ -30,6 +32,7 @@ function Settings({
   handleCallRateChange,
   zoneGroups,
   setZoneGroups,
+  doctors = [],
   workingDays,
   toggleWorkingDay,
   holidays,
@@ -52,6 +55,36 @@ function Settings({
   const { language } = useI18n();
   const ar = language === "ar";
   const [groupInputs, setGroupInputs] = useState({});
+  const [selectedGroup, setSelectedGroup] = useState(0);
+  const [pasteText, setPasteText] = useState("");
+  const [pastePreview, setPastePreview] = useState(null);
+
+  const ungroupedSheetAreas = ungroupedAreas(doctors, zoneGroups);
+
+  const addAreaToGroup = (groupIndex, area) => {
+    if (!area) return;
+    setZoneGroups((current) =>
+      current.map((group, index) => {
+        const without = group.filter((item) => item !== area);
+        if (index === groupIndex) {
+          return [...without, area];
+        }
+        return without;
+      })
+    );
+  };
+
+  const handlePastePreview = () => {
+    if (!pasteText.trim()) return;
+    setPastePreview(parseGroupsText(pasteText, doctors));
+  };
+
+  const applyPastedGroups = () => {
+    if (!pastePreview || !pastePreview.groups.length) return;
+    setZoneGroups(pastePreview.groups);
+    setPastePreview(null);
+    setPasteText("");
+  };
   const backupFileRef = useRef(null);
   const [backupMessage, setBackupMessage] = useState("");
 
@@ -185,9 +218,69 @@ function Settings({
           {ar ? "المناطق الموجودة في نفس المجموعة يمكن جدولتها مع بعض في نفس اليوم. أي منطقة مش موجودة في أي مجموعة بتتجدول في أيام لوحدها، والبلان مش هيخلط منطقتين بعيدتين في يوم واحد." : "Areas in the same group can share a day. An area that is not in any group gets its own days, and the plan never mixes two distant areas on the same day."}
         </p>
 
+        <div className="paste-groups-box">
+          <label>
+            {ar ? "لصق المجموعات كنص" : "Paste groups as text"}
+          </label>
+          <textarea
+            rows={4}
+            value={pasteText}
+            onChange={(event) => { setPasteText(event.target.value); setPastePreview(null); }}
+            placeholder={ar
+              ? "كل مجموعة في سطر، والمناطق مفصولة بفاصلة. مثال:\nمنوف, تتا, شبرا بلوله\nاشمون, طليا, سمدون"
+              : "One group per line, areas separated by commas. Example:\nMenouf, Tata, Shubra Baloula\nAshmoun, Talia, Samadoun"}
+          />
+          <div className="export-actions" style={{ marginTop: 8 }}>
+            <button type="button" className="export-button" onClick={handlePastePreview}>
+              <ClipboardPaste size={15} />
+              {ar ? "معاينة المجموعات" : "Preview groups"}
+            </button>
+          </div>
+
+          {pastePreview && (
+            <div className="paste-preview">
+              {pastePreview.groups.map((group, i) => (
+                <div className="zone-group-bricks" key={i} style={{ marginBottom: 6 }}>
+                  <strong style={{ marginInlineEnd: 6 }}>{ar ? `مجموعة ${i + 1}:` : `Group ${i + 1}:`}</strong>
+                  {group.map((brick) => (
+                    <span className="zone-brick-chip" key={brick}>{brick}</span>
+                  ))}
+                </div>
+              ))}
+              {pastePreview.unmatched.length > 0 && (
+                <p className="paste-warning">
+                  {ar
+                    ? `لم يتم مطابقة: ${pastePreview.unmatched.join("، ")} — راجع الأسماء مقارنة بالملف.`
+                    : `Not matched: ${pastePreview.unmatched.join(", ")} — check the names against the imported sheet.`}
+                </p>
+              )}
+              {pastePreview.missing.length > 0 && (
+                <p className="paste-warning">
+                  {ar
+                    ? `مناطق من الملف بدون مجموعة: ${pastePreview.missing.join("، ")}`
+                    : `Sheet areas left ungrouped: ${pastePreview.missing.join(", ")}`}
+                </p>
+              )}
+              <div className="export-actions" style={{ marginTop: 8 }}>
+                <button type="button" className="export-button" onClick={applyPastedGroups} disabled={!pastePreview.groups.length}>
+                  <ClipboardPaste size={15} />
+                  {ar ? "استبدال المجموعات الحالية" : "Replace current groups"}
+                </button>
+                <button type="button" className="export-button" onClick={() => setPastePreview(null)}>
+                  {ar ? "إلغاء" : "Cancel"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="zone-groups-list">
           {zoneGroups.map((group, groupIndex) => (
-            <div className="zone-group" key={groupIndex}>
+            <div
+              className={`zone-group${selectedGroup === groupIndex ? " zone-group-selected" : ""}`}
+              key={groupIndex}
+              onClick={() => setSelectedGroup(groupIndex)}
+            >
               <div className="zone-group-bricks">
                 {group.map((brick) => (
                   <span className="zone-brick-chip" key={brick}>
@@ -249,6 +342,28 @@ function Settings({
             <span>{ar ? "مجموعة جديدة" : "New group"}</span>
           </button>
         </div>
+
+        {ungroupedSheetAreas.length > 0 && (
+          <div className="ungrouped-areas">
+            <p>
+              {ar
+                ? "مناطق من ملفك لسه مش في أي مجموعة — دوس على المنطقة عشان تضيفها للمجموعة المحددة:"
+                : "Areas from your sheet not in any group yet - tap an area to add it to the selected group:"}
+            </p>
+            <div className="zone-group-bricks">
+              {ungroupedSheetAreas.map((area) => (
+                <button
+                  type="button"
+                  className="zone-brick-chip zone-brick-add"
+                  key={area}
+                  onClick={() => addAreaToGroup(Math.min(selectedGroup, Math.max(zoneGroups.length - 1, 0)), area)}
+                >
+                  <Plus size={12} /> {area}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="setting-note">
           <strong>{ar ? "معلومة مهمة" : "Good to know"}</strong>
