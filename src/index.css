@@ -2196,3 +2196,28 @@ textarea:focus-visible {
 .brand-disclaimer {
   white-space: normal;
 }
+
+/* VARIANT A: Slate Balance */
+:root {
+  --bg: #f5f8fc;
+  --surface-2: #eef3f9;
+  --border: #dfe7f0;
+  --sidebar-bg: #23517e;
+  --primary: #2b77b4;
+  --primary-strong: #22629a;
+  --tint-info: #e9f3fb;
+  --tint-info-text: #356f9e;
+  --accent: #f3870a;
+  --ring: 0 0 0 3px rgba(43, 119, 180, 0.28);
+}
+[data-theme='dark'] {
+  --bg: #0f1b2a;
+  --surface: #16283d;
+  --surface-2: #1d3249;
+  --border: #2a4258;
+  --sidebar-bg: #12233a;
+  --primary: #5aa5e2;
+  --primary-strong: #74b6ea;
+  --tint-info: #17334d;
+  --tint-info-text: #8fc3ea;
+}

@@ -21,7 +21,7 @@ const translations = {
     switchToArabic: "التبديل إلى العربية",
     switchToDark: "الوضع الداكن",
     systemManager: "مدير النظام",
-    disclaimer: "مشروع شخصي — غير تابع لشركة نرهداو إنترناشيونال",
+    disclaimer: "مشروع شخصي — غير تابع لشركة نيرهادو إنترناشيونال",
     switchToLight: "الوضع الفاتح",
     dashboardTitle: "لوحة التحكم",
     dashboardSubtitle: "تابع بيانات الدكاترة وخطة الزيارات الشهرية من مكان واحد.",
