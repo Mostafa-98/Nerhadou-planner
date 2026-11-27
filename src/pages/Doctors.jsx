@@ -19,7 +19,8 @@ import { importDoctorsFromExcel } from "../utils/excelImporter";
 import { useI18n } from "../i18n";
 
 function Doctors() {
-    const { t } = useI18n();
+    const { language, t } = useI18n();
+    const ar = language === "ar";
     const [doctors, setDoctors] = usePersistentState(
         "visit-planner-doctors",
         []
@@ -144,11 +145,11 @@ function Doctors() {
             setDoctors(importedDoctors);
             resetFilters();
             setMessage(
-                `تم استيراد ${importedDoctors.length} دكتور بنجاح`
+                ar ? `تم استيراد ${importedDoctors.length} دكتور بنجاح` : `Imported ${importedDoctors.length} doctors successfully`
             );
         } catch (error) {
             setMessageType("error");
-            setMessage(error.message || "حصل خطأ أثناء استيراد الملف");
+            setMessage(error.message || (ar ? "حصل خطأ أثناء استيراد الملف" : "Something went wrong while importing the file"));
         } finally {
             setLoading(false);
             event.target.value = "";
@@ -158,14 +159,14 @@ function Doctors() {
     const clearDoctors = () => {
         if (
             !doctors.length ||
-            !window.confirm("هل تريد حذف جميع الدكاترة المسجلين؟")
+            !window.confirm(ar ? "هل تريد حذف جميع الدكاترة المسجلين؟" : "Delete all registered doctors?")
         ) {
             return;
         }
 
         setDoctors([]);
         resetFilters();
-        setMessage("تم حذف بيانات الدكاترة.");
+        setMessage(ar ? "تم حذف بيانات الدكاترة." : "Doctor data deleted.");
         setMessageType("success");
     };
 
@@ -196,7 +197,7 @@ function Doctors() {
                     <button
                         type="button"
                         onClick={() => setMessage("")}
-                        aria-label="إغلاق الرسالة"
+                        aria-label={ar ? "إغلاق الرسالة" : "Dismiss message"}
                     >
                         <X size={16} />
                     </button>
@@ -209,7 +210,7 @@ function Doctors() {
                         <Users size={22} />
                     </div>
                     <div>
-                        <span>إجمالي الدكاترة</span>
+                        <span>{ar ? "إجمالي الدكاترة" : "Total Doctors"}</span>
                         <strong>{doctors.length}</strong>
                     </div>
                 </div>
@@ -219,7 +220,7 @@ function Doctors() {
                         <Stethoscope size={22} />
                     </div>
                     <div>
-                        <span>التخصصات المسجلة</span>
+                        <span>{ar ? "التخصصات المسجلة" : "Specialties"}</span>
                         <strong>{specialties.length}</strong>
                     </div>
                 </div>
@@ -229,7 +230,7 @@ function Doctors() {
                         <MapPinned size={22} />
                     </div>
                     <div>
-                        <span>المناطق المسجلة</span>
+                        <span>{ar ? "المناطق المسجلة" : "Areas"}</span>
                         <strong>{bricks.length}</strong>
                     </div>
                 </div>
@@ -239,7 +240,7 @@ function Doctors() {
                         <FileSpreadsheet size={22} />
                     </div>
                     <div>
-                        <span>متوسط Frequency</span>
+                        <span>{ar ? "متوسط Frequency" : "Average Frequency"}</span>
                         <strong>{averageFrequency}</strong>
                     </div>
                 </div>
@@ -248,8 +249,8 @@ function Doctors() {
             <div className="panel doctors-table-panel">
                 <div className="panel-heading doctors-panel-heading">
                     <div>
-                        <span className="panel-kicker">قاعدة البيانات</span>
-                        <h2>قائمة الدكاترة</h2>
+                        <span className="panel-kicker">{ar ? "قاعدة البيانات" : "Database"}</span>
+                        <h2>{ar ? "قائمة الدكاترة" : "Doctor List"}</h2>
                     </div>
 
                     {doctors.length > 0 && (
@@ -259,7 +260,7 @@ function Doctors() {
                             onClick={clearDoctors}
                         >
                             <Trash2 size={16} />
-                            مسح القائمة
+                            {ar ? "مسح القائمة" : "Clear list"}
                         </button>
                     )}
                 </div>
@@ -267,19 +268,19 @@ function Doctors() {
                 {loading ? (
                     <div className="doctors-loading">
                         <div className="loading-spinner" />
-                        <strong>جاري قراءة ملف Excel</strong>
-                        <span>يرجى الانتظار حتى اكتمال الاستيراد</span>
+                        <strong>{ar ? "جاري قراءة ملف Excel" : "Reading Excel file"}</strong>
+                        <span>{ar ? "يرجى الانتظار حتى اكتمال الاستيراد" : "Please wait until the import finishes"}</span>
                     </div>
                 ) : doctors.length === 0 ? (
                     <label className="doctors-empty-state">
                         <div className="empty-file-icon">
                             <FileSpreadsheet size={34} />
                         </div>
-                        <h3>لا توجد بيانات دكاترة حتى الآن</h3>
-                        <p>استورد ملف Excel لبدء تنظيم الزيارات</p>
+                        <h3>{ar ? "لا توجد بيانات دكاترة حتى الآن" : "No doctor data yet"}</h3>
+                        <p>{ar ? "استورد ملف Excel لبدء تنظيم الزيارات" : "Import an Excel file to start organizing visits"}</p>
                         <span className="empty-import-action">
                             <Upload size={17} />
-                            اختيار ملف Excel
+                            {ar ? "اختيار ملف Excel" : "Choose Excel file"}
                         </span>
                         <input
                             type="file"
@@ -300,7 +301,7 @@ function Doctors() {
                                         setSearchTerm(event.target.value);
                                         setCurrentPage(1);
                                     }}
-                                    placeholder="ابحث بالاسم أو التخصص أو المنطقة..."
+                                    placeholder={ar ? "ابحث بالاسم أو التخصص أو المنطقة..." : "Search by name, specialty or area..."}
                                 />
                             </label>
 
@@ -312,9 +313,9 @@ function Doctors() {
                                         setSpecialtyFilter(event.target.value);
                                         setCurrentPage(1);
                                     }}
-                                    aria-label="تصفية التخصص"
+                                    aria-label={ar ? "تصفية التخصص" : "Filter by specialty"}
                                 >
-                                    <option value="all">كل التخصصات</option>
+                                    <option value="all">{ar ? "كل التخصصات" : "All specialties"}</option>
                                     {specialties.map((specialty) => (
                                         <option value={specialty} key={specialty}>
                                             {specialty}
@@ -331,9 +332,9 @@ function Doctors() {
                                         setBrickFilter(event.target.value);
                                         setCurrentPage(1);
                                     }}
-                                    aria-label="تصفية المنطقة"
+                                    aria-label={ar ? "تصفية المنطقة" : "Filter by area"}
                                 >
-                                    <option value="all">كل المناطق</option>
+                                    <option value="all">{ar ? "كل المناطق" : "All areas"}</option>
                                     {bricks.map((brick) => (
                                         <option value={brick} key={brick}>
                                             {brick}
@@ -346,11 +347,11 @@ function Doctors() {
                                 <select
                                     value={sortBy}
                                     onChange={(event) => setSortBy(event.target.value)}
-                                    aria-label="ترتيب الدكاترة"
+                                    aria-label={ar ? "ترتيب الدكاترة" : "Sort doctors"}
                                 >
-                                    <option value="name">الترتيب حسب الاسم</option>
-                                    <option value="frequency">الأعلى Frequency</option>
-                                    <option value="brick">حسب المنطقة</option>
+                                    <option value="name">{ar ? "الترتيب حسب الاسم" : "Sort by name"}</option>
+                                    <option value="frequency">{ar ? "الأعلى Frequency" : "Highest frequency"}</option>
+                                    <option value="brick">{ar ? "حسب المنطقة" : "By area"}</option>
                                 </select>
                             </label>
 
@@ -362,7 +363,7 @@ function Doctors() {
                                     type="button"
                                     className="reset-filters-button"
                                     onClick={resetFilters}
-                                    title="إعادة ضبط الفلاتر"
+                                    title={ar ? "إعادة ضبط الفلاتر" : "Reset filters"}
                                 >
                                     <RotateCcw size={15} />
                                 </button>
@@ -371,22 +372,21 @@ function Doctors() {
 
                         <div className="doctors-results-summary">
                             <span>
-                                عرض <strong>{visibleDoctors.length}</strong> من{" "}
-                                <strong>{filteredDoctors.length}</strong> نتيجة
+                                {ar ? "عرض" : "Showing"} <strong>{visibleDoctors.length}</strong> {ar ? "من" : "of"}{" "} <strong>{filteredDoctors.length}</strong> {ar ? "نتيجة" : "results"}
                             </span>
                         </div>
 
                         {filteredDoctors.length === 0 ? (
                             <div className="no-filter-results">
                                 <Search size={28} />
-                                <h3>لا توجد نتائج مطابقة</h3>
-                                <p>جرّب تغيير كلمات البحث أو إزالة الفلاتر.</p>
+                                <h3>{ar ? "لا توجد نتائج مطابقة" : "No matching results"}</h3>
+                                <p>{ar ? "جرّب تغيير كلمات البحث أو إزالة الفلاتر." : "Try changing the search terms or removing filters."}</p>
                                 <button
                                     type="button"
                                     className="secondary-button"
                                     onClick={resetFilters}
                                 >
-                                    إعادة ضبط البحث
+                                    {ar ? "إعادة ضبط البحث" : "Reset search"}
                                 </button>
                             </div>
                         ) : (
@@ -395,11 +395,11 @@ function Doctors() {
                                     <table className="doctors-table">
                                         <thead>
                                             <tr>
-                                                <th>الطبيب</th>
-                                                <th>التخصص</th>
+                                                <th>{ar ? "الطبيب" : "Doctor"}</th>
+                                                <th>{ar ? "التخصص" : "Specialty"}</th>
                                                 <th>Parameters</th>
                                                 <th>Current Frequency</th>
-                                                <th>المنطقة</th>
+                                                <th>{ar ? "المنطقة" : "Area"}</th>
                                             </tr>
                                         </thead>
 
@@ -414,7 +414,7 @@ function Doctors() {
                                                                     .charAt(0)}
                                                             </div>
                                                             <div>
-                                                                <strong>{doctor.name || "غير معروف"}</strong>
+                                                                <strong>{doctor.name || (ar ? "غير معروف" : "Unknown")}</strong>
                                                                 {doctor.workplace && (
                                                                     <small>{doctor.workplace}</small>
                                                                 )}
@@ -423,7 +423,7 @@ function Doctors() {
                                                     </td>
                                                     <td>
                                                         <span className="specialty-badge">
-                                                            {doctor.specialty || "غير محدد"}
+                                                            {!doctor.specialty || doctor.specialty === "غير محدد" ? (ar ? "غير محدد" : "Unassigned") : doctor.specialty}
                                                         </span>
                                                     </td>
                                                     <td>
@@ -443,7 +443,7 @@ function Doctors() {
                                                     <td>
                                                         <div className="brick-cell">
                                                             <MapPinned size={15} />
-                                                            {doctor.brick || "غير محدد"}
+                                                            {!doctor.brick || doctor.brick === "غير محدد" ? (ar ? "غير محدد" : "Unassigned") : doctor.brick}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -462,13 +462,13 @@ function Doctors() {
                                                 )
                                             }
                                             disabled={safeCurrentPage === 1}
-                                            aria-label="الصفحة السابقة"
+                                            aria-label={ar ? "الصفحة السابقة" : "Previous page"}
                                         >
                                             <ChevronRight size={17} />
                                         </button>
 
                                         <span>
-                                            صفحة {safeCurrentPage} من {totalPages}
+                                            {ar ? "صفحة" : "Page"} {safeCurrentPage} {ar ? "من" : "of"} {totalPages}
                                         </span>
 
                                         <button
@@ -479,7 +479,7 @@ function Doctors() {
                                                 )
                                             }
                                             disabled={safeCurrentPage === totalPages}
-                                            aria-label="الصفحة التالية"
+                                            aria-label={ar ? "الصفحة التالية" : "Next page"}
                                         >
                                             <ChevronLeft size={17} />
                                         </button>

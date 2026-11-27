@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+import { useI18n } from "../i18n";
+import { dayName } from "../i18n/engineText.js";
+
 import {
   CalendarDays,
   CalendarCheck,
@@ -42,6 +45,8 @@ function Settings({
   setPlanEndDate,
   planCalculation,
 }) {
+  const { language } = useI18n();
+  const ar = language === "ar";
   const [groupInputs, setGroupInputs] = useState({});
 
   const updateGroupInput = (groupIndex, value) => {
@@ -84,7 +89,7 @@ function Settings({
   };
 
   const addGroup = () => {
-    setZoneGroups((current) => [...current, ["منطقة جديدة"]]);
+    setZoneGroups((current) => [...current, [ar ? "منطقة جديدة" : "New area"]]);
   };
 
   const removeGroup = (groupIndex) => {
@@ -97,9 +102,9 @@ function Settings({
     <div className="settings-page">
       <div className="welcome-section">
         <div>
-          <h1>إعدادات النظام</h1>
+          <h1>{ar ? "إعدادات النظام" : "System Settings"}</h1>
           <p>
-            خصص أهداف الزيارات وأيام العمل بما يناسب طبيعة عملك.
+            {ar ? "خصص أهداف الزيارات وأيام العمل بما يناسب طبيعة عملك." : "Tune visit targets and working days to fit how you work."}
           </p>
         </div>
       </div>
@@ -107,14 +112,14 @@ function Settings({
       {/* Call Rate Settings */}
       <div className="panel settings-panel">
         <div className="panel-heading">
-          <h3>إعدادات معدل الزيارات</h3>
-          <span className="status">إعداد شخصي</span>
+          <h3>{ar ? "إعدادات معدل الزيارات" : "Call Rate Settings"}</h3>
+          <span className="status">{ar ? "إعداد شخصي" : "Personal setting"}</span>
         </div>
 
         <div className="setting-item">
           <div>
             <strong>Call Rate Target</strong>
-            <p>عدد الزيارات المستهدف يومياً</p>
+            <p>{ar ? "عدد الزيارات المستهدف يومياً" : "Targeted visits per day"}</p>
           </div>
 
           <div className="setting-input">
@@ -130,17 +135,14 @@ function Settings({
               placeholder="12.5"
             />
 
-            <span>زيارة / يوم</span>
+            <span>{ar ? "زيارة / يوم" : "visits / day"}</span>
           </div>
         </div>
 
         <div className="setting-note">
-          <strong>معلومة مهمة</strong>
+          <strong>{ar ? "معلومة مهمة" : "Good to know"}</strong>
           <p>
-            Call Rate هو متوسط الزيارات المستهدف يومياً لفترة
-            البلان، والبلان بيتوزع حواليه. الحد الأقصى اليومي
-            المسموح به هو 15 زيارة، ولا يتم تقليل تكرار زيارات
-            الدكاترة للوصول إليه.
+            {ar ? "Call Rate هو متوسط الزيارات المستهدف يومياً لفترة البلان، والبلان بيتوزع حواليه. الحد الأقصى اليومي المسموح به هو 15 زيارة، ولا يتم تقليل تكرار زيارات الدكاترة للوصول إليه." : "Call Rate is the targeted daily visit average for the plan period, and the plan is distributed around it. The daily maximum is 15 visits, and doctor visit frequencies are never reduced to reach it."}
           </p>
         </div>
       </div>
@@ -148,14 +150,12 @@ function Settings({
       {/* Zone Groups */}
       <div className="panel settings-panel">
         <div className="panel-heading">
-          <h3>مجموعات المناطق</h3>
-          <span className="status">{zoneGroups.length} مجموعات</span>
+          <h3>{ar ? "مجموعات المناطق" : "Area Groups"}</h3>
+          <span className="status">{zoneGroups.length} {ar ? "مجموعات" : "groups"}</span>
         </div>
 
         <p className="section-description">
-          المناطق الموجودة في نفس المجموعة يمكن جدولتها مع بعض
-          في نفس اليوم. أي منطقة مش موجودة في أي مجموعة بتتجدول
-          في أيام لوحدها، والبلان مش هيخلط منطقتين بعيدتين في يوم واحد.
+          {ar ? "المناطق الموجودة في نفس المجموعة يمكن جدولتها مع بعض في نفس اليوم. أي منطقة مش موجودة في أي مجموعة بتتجدول في أيام لوحدها، والبلان مش هيخلط منطقتين بعيدتين في يوم واحد." : "Areas in the same group can share a day. An area that is not in any group gets its own days, and the plan never mixes two distant areas on the same day."}
         </p>
 
         <div className="zone-groups-list">
@@ -168,7 +168,7 @@ function Settings({
 
                     <button
                       type="button"
-                      aria-label={`حذف ${brick}`}
+                      aria-label={ar ? `حذف ${brick}` : `Delete ${brick}`}
                       onClick={() =>
                         removeBrickFromGroup(groupIndex, brick)
                       }
@@ -183,7 +183,7 @@ function Settings({
                 <input
                   type="text"
                   value={groupInputs[groupIndex] || ""}
-                  placeholder="أضف منطقة للمجموعة"
+                  placeholder={ar ? "أضف منطقة للمجموعة" : "Add an area to the group"}
                   onChange={(event) =>
                     updateGroupInput(groupIndex, event.target.value)
                   }
@@ -197,7 +197,7 @@ function Settings({
                 <button
                   type="button"
                   className="zone-group-add-brick"
-                  aria-label="إضافة المنطقة"
+                  aria-label={ar ? "إضافة المنطقة" : "Add area"}
                   onClick={() => addBrickToGroup(groupIndex)}
                 >
                   <Plus size={15} />
@@ -206,7 +206,7 @@ function Settings({
                 <button
                   type="button"
                   className="zone-group-delete"
-                  aria-label="حذف المجموعة"
+                  aria-label={ar ? "حذف المجموعة" : "Delete group"}
                   onClick={() => removeGroup(groupIndex)}
                 >
                   <Trash2 size={15} />
@@ -219,15 +219,14 @@ function Settings({
         <div className="zone-group-add">
           <button type="button" onClick={addGroup}>
             <Plus size={15} />
-            <span>مجموعة جديدة</span>
+            <span>{ar ? "مجموعة جديدة" : "New group"}</span>
           </button>
         </div>
 
         <div className="setting-note">
-          <strong>معلومة مهمة</strong>
+          <strong>{ar ? "معلومة مهمة" : "Good to know"}</strong>
           <p>
-            البلان لا يخلط أبداً مناطق من مجموعتين مختلفتين في
-            نفس اليوم، فأضف هنا فقط المناطق القريبة فعلاً من بعضها.
+            {ar ? "البلان لا يخلط أبداً مناطق من مجموعتين مختلفتين في نفس اليوم، فأضف هنا فقط المناطق القريبة فعلاً من بعضها." : "The plan never mixes areas from two different groups on the same day, so only add areas that are genuinely close to each other."}
           </p>
         </div>
       </div>
@@ -235,12 +234,12 @@ function Settings({
       {/* Working Days */}
       <div className="panel settings-panel schedule-panel">
         <div className="panel-heading">
-          <h3>أيام العمل الأسبوعية</h3>
-          <span className="status">{workingDays.length} أيام عمل</span>
+          <h3>{ar ? "أيام العمل الأسبوعية" : "Weekly Workdays"}</h3>
+          <span className="status">{workingDays.length} {ar ? "أيام عمل" : "workdays"}</span>
         </div>
 
         <p className="section-description">
-          اختار الأيام اللي متاح فيها تنفيذ الزيارات.
+          {ar ? "اختار الأيام اللي متاح فيها تنفيذ الزيارات." : "Pick the days visits can take place."}
         </p>
 
         <div className="week-days-grid">
@@ -256,16 +255,15 @@ function Settings({
                 <CalendarCheck size={16} />
               )}
 
-              <span>{day}</span>
+              <span>{dayName(day, language)}</span>
             </button>
           ))}
         </div>
 
         <div className="setting-note">
-          <strong>عدد أيام العمل: {workingDays.length}</strong>
+          <strong>{ar ? "عدد أيام العمل" : "Working days"}: {workingDays.length}</strong>
           <p>
-            الأيام غير المحددة سيتم اعتبارها أيام راحة،
-            ولن يتم توزيع زيارات عليها.
+            {ar ? "الأيام غير المحددة سيتم اعتبارها أيام راحة، ولن يتم توزيع زيارات عليها." : "Unselected days count as rest days and no visits are scheduled on them."}
           </p>
         </div>
       </div>
@@ -273,12 +271,12 @@ function Settings({
       {/* Holidays */}
       <div className="panel settings-panel schedule-panel">
         <div className="panel-heading">
-          <h3>الإجازات والعطلات</h3>
-          <span className="status">{holidays.length} إجازات</span>
+          <h3>{ar ? "الإجازات والعطلات" : "Holidays"}</h3>
+          <span className="status">{holidays.length} {ar ? "إجازات" : "holidays"}</span>
         </div>
 
         <p className="section-description">
-          أضف الإجازات الرسمية أو الشخصية التي تريد استبعادها من البلان.
+          {ar ? "أضف الإجازات الرسمية أو الشخصية التي تريد استبعادها من البلان." : "Add official or personal holidays to exclude from the plan."}
         </p>
 
         <div className="date-add-row">
@@ -296,7 +294,7 @@ function Settings({
             disabled={!holidayDate}
           >
             <Plus size={17} />
-            إضافة إجازة
+            {ar ? "إضافة إجازة" : "Add holiday"}
           </button>
         </div>
 
@@ -304,7 +302,7 @@ function Settings({
           {holidays.length === 0 ? (
             <div className="empty-dates">
               <CalendarOff size={23} />
-              <span>لم تتم إضافة إجازات حتى الآن</span>
+              <span>{ar ? "لم تتم إضافة إجازات حتى الآن" : "No holidays added yet"}</span>
             </div>
           ) : (
             holidays.map((date) => (
@@ -318,7 +316,7 @@ function Settings({
                   type="button"
                   className="remove-date-button"
                   onClick={() => removeHoliday(date)}
-                  title="حذف الإجازة"
+                  title={ar ? "حذف الإجازة" : "Delete holiday"}
                 >
                   <Trash2 size={17} />
                 </button>
@@ -331,12 +329,12 @@ function Settings({
       {/* Meetings */}
       <div className="panel settings-panel schedule-panel">
         <div className="panel-heading">
-          <h3>أيام الاجتماعات</h3>
-          <span className="status">{meetings.length} اجتماعات</span>
+          <h3>{ar ? "أيام الاجتماعات" : "Meeting Days"}</h3>
+          <span className="status">{meetings.length} {ar ? "اجتماعات" : "meetings"}</span>
         </div>
 
         <p className="section-description">
-          حدد مواعيد الاجتماعات حتى لا يتم جدولة زيارات في هذه الأيام.
+          {ar ? "حدد مواعيد الاجتماعات حتى لا يتم جدولة زيارات في هذه الأيام." : "Set meeting days so no visits are scheduled on them."}
         </p>
 
         <div className="date-add-row">
@@ -354,7 +352,7 @@ function Settings({
             disabled={!meetingDate}
           >
             <Plus size={17} />
-            إضافة اجتماع
+            {ar ? "إضافة اجتماع" : "Add meeting"}
           </button>
         </div>
 
@@ -362,7 +360,7 @@ function Settings({
           {meetings.length === 0 ? (
             <div className="empty-dates">
               <CalendarDays size={23} />
-              <span>لم تتم إضافة اجتماعات حتى الآن</span>
+              <span>{ar ? "لم تتم إضافة اجتماعات حتى الآن" : "No meetings added yet"}</span>
             </div>
           ) : (
             meetings.map((date) => (
@@ -376,7 +374,7 @@ function Settings({
                   type="button"
                   className="remove-date-button"
                   onClick={() => removeMeeting(date)}
-                  title="حذف الاجتماع"
+                  title={ar ? "حذف الاجتماع" : "Delete meeting"}
                 >
                   <Trash2 size={17} />
                 </button>
@@ -389,19 +387,19 @@ function Settings({
       {/* Monthly Plan Period */}
       <div className="panel settings-panel schedule-panel">
         <div className="panel-heading">
-          <h3>فترة البلان الشهري</h3>
-          <span className="status">إعداد البلان</span>
+          <h3>{ar ? "فترة البلان الشهري" : "Monthly Plan Period"}</h3>
+          <span className="status">{ar ? "إعداد البلان" : "Plan setup"}</span>
         </div>
 
         <p className="section-description">
-          حدد بداية ونهاية الفترة التي تريد إنشاء خطة الزيارات لها.
+          {ar ? "حدد بداية ونهاية الفترة التي تريد إنشاء خطة الزيارات لها." : "Set the start and end of the period you want the visit plan for."}
         </p>
 
         <div className="plan-period-grid">
           <div className="setting-item">
             <div>
-              <strong>تاريخ بداية البلان</strong>
-              <p>أول يوم في الخطة</p>
+              <strong>{ar ? "تاريخ بداية البلان" : "Plan start date"}</strong>
+              <p>{ar ? "أول يوم في الخطة" : "First day of the plan"}</p>
             </div>
 
             <input
@@ -414,8 +412,8 @@ function Settings({
 
           <div className="setting-item">
             <div>
-              <strong>تاريخ نهاية البلان</strong>
-              <p>آخر يوم في الخطة</p>
+              <strong>{ar ? "تاريخ نهاية البلان" : "Plan end date"}</strong>
+              <p>{ar ? "آخر يوم في الخطة" : "Last day of the plan"}</p>
             </div>
 
             <input
@@ -431,14 +429,14 @@ function Settings({
           planEndDate &&
           planStartDate > planEndDate && (
             <div className="setting-note">
-              <strong>تنبيه</strong>
-              <p>تاريخ النهاية لازم يكون بعد تاريخ البداية.</p>
+              <strong>{ar ? "تنبيه" : "Note"}</strong>
+              <p>{ar ? "تاريخ النهاية لازم يكون بعد تاريخ البداية." : "The end date must come after the start date."}</p>
             </div>
           )}
 
         <div className="plan-results-grid">
           <div className="plan-result-card">
-            <span>أيام العمل الفعلية</span>
+            <span>{ar ? "أيام العمل الفعلية" : "Actual working days"}</span>
 
             <h2>
               {planCalculation.valid
@@ -446,17 +444,17 @@ function Settings({
                 : "—"}
             </h2>
 
-            <small>بعد استبعاد الإجازات والاجتماعات</small>
+            <small>{ar ? "بعد استبعاد الإجازات والاجتماعات" : "After excluding holidays and meetings"}</small>
           </div>
 
           <div className="plan-result-card">
-            <span>Call Rate اليومي</span>
+            <span>{ar ? "Call Rate اليومي" : "Daily Call Rate"}</span>
             <h2>{callRate || "—"}</h2>
-            <small>زيارة / يوم</small>
+            <small>{ar ? "زيارة / يوم" : "visits / day"}</small>
           </div>
 
           <div className="plan-result-card">
-            <span>إجمالي الزيارات المستهدف</span>
+            <span>{ar ? "إجمالي الزيارات المستهدف" : "Total targeted visits"}</span>
 
             <h2>
               {planCalculation.valid && callRate
@@ -466,15 +464,14 @@ function Settings({
                 : "—"}
             </h2>
 
-            <small>الطاقة الاستيعابية للفترة</small>
+            <small>{ar ? "الطاقة الاستيعابية للفترة" : "Period capacity"}</small>
           </div>
         </div>
 
         <div className="setting-note">
-          <strong>طريقة الحساب</strong>
+          <strong>{ar ? "طريقة الحساب" : "How it is calculated"}</strong>
           <p>
-            إجمالي الزيارات = أيام العمل الفعلية × Call Rate.
-            يتم استبعاد أيام الراحة والإجازات والاجتماعات المسجلة.
+            {ar ? "إجمالي الزيارات = أيام العمل الفعلية × Call Rate. يتم استبعاد أيام الراحة والإجازات والاجتماعات المسجلة." : "Total visits = actual working days x Call Rate. Rest days, holidays and registered meetings are excluded."}
           </p>
         </div>
       </div>

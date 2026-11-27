@@ -10,6 +10,8 @@ import {
 
 import { usePersistentState } from "../utils/usePersistentState";
 
+import { useI18n } from "../i18n";
+
 
 function VisitPlanning({
     callRate,
@@ -20,6 +22,8 @@ function VisitPlanning({
     planStartDate,
     planEndDate,
 }) {
+    const { language } = useI18n();
+    const ar = language === "ar";
     const [doctors] = usePersistentState(
         "visit-planner-doctors",
         []
@@ -32,7 +36,7 @@ function VisitPlanning({
 
     const formatDate = (date) => {
         return new Date(date + "T00:00:00").toLocaleDateString(
-            "ar-EG",
+            ar ? "ar-EG" : "en-GB",
             {
                 weekday: "long",
                 day: "numeric",
@@ -49,19 +53,19 @@ function VisitPlanning({
 
         if (!planStartDate || !planEndDate) {
             setMessage(
-                "من فضلك حدد تاريخ بداية ونهاية البلان من الإعدادات."
+                ar ? "من فضلك حدد تاريخ بداية ونهاية البلان من الإعدادات." : "Please set the plan start and end dates in Settings."
             );
             return;
         }
 
         if (!doctors.length) {
             setMessage(
-                "لا توجد بيانات دكاترة. استورد ملف Excel أولاً."
+                ar ? "لا توجد بيانات دكاترة. استورد ملف Excel أولاً." : "No doctor data yet. Import an Excel file first."
             );
             return;
         }
         setIsGenerating(true);
-        setMessage("جاري إنشاء الخطة، لا تقم بإغلاق الصفحة.");
+        setMessage(ar ? "جاري إنشاء الخطة، لا تقم بإغلاق الصفحة." : "Generating the plan, please keep this page open.");
 
         const worker = new Worker(
             new URL(
@@ -81,11 +85,11 @@ function VisitPlanning({
 
             if (result.success) {
                 setMessage(
-                    "تم إنشاء الخطة. راجع النتائج قبل اعتمادها."
+                    ar ? "تم إنشاء الخطة. راجع النتائج قبل اعتمادها." : "Plan generated. Review the results before approving it."
                 );
             } else {
                 setMessage(
-                    "تم إنشاء نتيجة مبدئية، لكن توجد أخطاء تحتاج إلى مراجعة."
+                    ar ? "تم إنشاء نتيجة مبدئية، لكن توجد أخطاء تحتاج إلى مراجعة." : "A draft plan was generated, but some issues need review."
                 );
             }
 
@@ -95,7 +99,7 @@ function VisitPlanning({
         worker.onerror = () => {
             setIsGenerating(false);
             setMessage(
-                "تعذر تشغيل محرك الخطة. يرجى تحديث الصفحة والمحاولة مرة أخرى."
+                ar ? "تعذر تشغيل محرك الخطة. يرجى تحديث الصفحة والمحاولة مرة أخرى." : "The plan engine could not run. Please refresh the page and try again."
             );
             worker.terminate();
         };
@@ -109,6 +113,7 @@ function VisitPlanning({
             meetings,
             callRate: Number(callRate) || 12.5,
             zoneGroups,
+            language,
         });
     };
 
@@ -128,25 +133,23 @@ function VisitPlanning({
 
     const getCallRateMessage = () => {
         if (callRateDifference === 0) {
-            return "وصلت للـ Call Rate المستهدف بالضبط.";
+            return ar ? "وصلت للـ Call Rate المستهدف بالضبط." : "Exactly on the targeted Call Rate.";
         }
 
         if (callRateDifference > 0) {
-            return `أعلى من المستهدف بـ ${callRateDifference} زيارة يومياً.`;
+            return ar ? `أعلى من المستهدف بـ ${callRateDifference} زيارة يومياً.` : `${callRateDifference} visits/day above target.`;
         }
 
-        return `أقل من المستهدف بـ ${Math.abs(
-            callRateDifference
-        )} زيارة يومياً.`;
+        return ar ? `أقل من المستهدف بـ ${Math.abs(callRateDifference)} زيارة يومياً.` : `${Math.abs(callRateDifference)} visits/day below target.`;
     };
 
     return (
         <div className="page-container">
             <div className="page-header">
                 <div>
-                    <h1>تخطيط الزيارات</h1>
+                    <h1>{ar ? "تخطيط الزيارات" : "Visit Planning"}</h1>
                     <p>
-                        إنشاء وتوزيع زيارات الدكاترة خلال فترة البلان
+                        {ar ? "إنشاء وتوزيع زيارات الدكاترة خلال فترة البلان" : "Generate and distribute doctor visits across the plan period"}
                     </p>
                 </div>
 
@@ -157,8 +160,7 @@ function VisitPlanning({
                 >
                     <RefreshCw size={18} />
                     {isGenerating
-                        ? "جاري إنشاء الخطة..."
-                        : "إنشاء خطة الزيارات"}
+                        ? (ar ? "جاري إنشاء الخطة..." : "Generating plan...") : (ar ? "إنشاء خطة الزيارات" : "Generate Visit Plan")}
                 </button>
             </div>
 
@@ -168,9 +170,9 @@ function VisitPlanning({
             >
                 <div className="section-header">
                     <div>
-                        <h2>إعدادات الخطة</h2>
+                        <h2>{ar ? "إعدادات الخطة" : "Plan Settings"}</h2>
                         <p>
-                            يتم استخدام البيانات المسجلة في صفحة الإعدادات
+                            {ar ? "يتم استخدام البيانات المسجلة في صفحة الإعدادات" : "Using the data saved on the Settings page"}
                         </p>
                     </div>
 
@@ -180,31 +182,31 @@ function VisitPlanning({
                 <div className="stats-grid">
                     <div className="stat-card">
                         <div>
-                            <p>بداية البلان</p>
+                            <p>{ar ? "بداية البلان" : "Plan start"}</p>
                             <h3>
-                                {planStartDate || "غير محدد"}
+                                {planStartDate || (ar ? "غير محدد" : "Not set")}
                             </h3>
                         </div>
                     </div>
 
                     <div className="stat-card">
                         <div>
-                            <p>نهاية البلان</p>
+                            <p>{ar ? "نهاية البلان" : "Plan end"}</p>
                             <h3>
-                                {planEndDate || "غير محدد"}
+                                {planEndDate || (ar ? "غير محدد" : "Not set")}
                             </h3>
                         </div>
                     </div>
 
                     <div className="stat-card">
                         <div>
-                            <p>Call Rate المستهدف</p>
+                            <p>{ar ? "Call Rate المستهدف" : "Target Call Rate"}</p>
                             <h3>{Number(callRate) || 12.5}</h3>                        </div>
                     </div>
 
                     <div className="stat-card">
                         <div>
-                            <p>عدد الدكاترة</p>
+                            <p>{ar ? "عدد الدكاترة" : "Doctors"}</p>
                             <h3>{doctors.length}</h3>
                         </div>
                     </div>
@@ -225,7 +227,7 @@ function VisitPlanning({
                     <div className="stats-grid">
                         <div className="stat-card">
                             <div>
-                                <p>أيام العمل المتاحة</p>
+                                <p>{ar ? "أيام العمل المتاحة" : "Available workdays"}</p>
                                 <h2>
                                     {stats.availableDays ?? 0}
                                 </h2>
@@ -234,7 +236,7 @@ function VisitPlanning({
 
                         <div className="stat-card">
                             <div>
-                                <p>الزيارات المطلوبة</p>
+                                <p>{ar ? "الزيارات المطلوبة" : "Required visits"}</p>
                                 <h2>
                                     {stats.requiredVisits ?? 0}
                                 </h2>
@@ -243,7 +245,7 @@ function VisitPlanning({
 
                         <div className="stat-card">
                             <div>
-                                <p>الزيارات الموزعة</p>
+                                <p>{ar ? "الزيارات الموزعة" : "Scheduled visits"}</p>
                                 <h2>
                                     {stats.scheduledVisits ?? 0}
                                 </h2>
@@ -252,14 +254,14 @@ function VisitPlanning({
 
                         <div className="stat-card">
                             <div>
-                                <p>Call Rate المستهدف</p>
+                                <p>{ar ? "Call Rate المستهدف" : "Target Call Rate"}</p>
                                 <h2>{targetCallRate}</h2>
                             </div>
                         </div>
 
                         <div className="stat-card">
                             <div>
-                                <p>Call Rate الفعلي</p>
+                                <p>{ar ? "Call Rate الفعلي" : "Actual Call Rate"}</p>
                                 <h2>
                                     {actualCallRate.toFixed(2)}
                                 </h2>
@@ -268,7 +270,7 @@ function VisitPlanning({
 
                         <div className="stat-card">
                             <div>
-                                <p>الفرق عن المستهدف</p>
+                                <p>{ar ? "الفرق عن المستهدف" : "Difference from target"}</p>
                                 <h2>
                                     {callRateDifference > 0 ? "+" : ""}
                                     {callRateDifference.toFixed(2)}
@@ -278,7 +280,7 @@ function VisitPlanning({
 
                         <div className="stat-card">
                             <div>
-                                <p>أقل زيارات في يوم</p>
+                                <p>{ar ? "أقل زيارات في يوم" : "Lowest visits in a day"}</p>
                                 <h2>
                                     {stats.minDailyVisits ?? 0}
                                 </h2>
@@ -287,7 +289,7 @@ function VisitPlanning({
 
                         <div className="stat-card">
                             <div>
-                                <p>أعلى زيارات في يوم</p>
+                                <p>{ar ? "أعلى زيارات في يوم" : "Highest visits in a day"}</p>
                                 <h2>
                                     {stats.maxDailyVisits ?? 0}
                                 </h2>
@@ -299,17 +301,15 @@ function VisitPlanning({
                         className="settings-card"
                         style={{ marginTop: 20 }}
                     >
-                        <h3>تقييم الـ Call Rate</h3>
+                        <h3>{ar ? "تقييم الـ Call Rate" : "Call Rate Assessment"}</h3>
                         <p>
                             {getCallRateMessage()}
                         </p>
                         <p>
-                            الهدف هو 12.5 زيارة في يوم العمل.
-                            الحد الأقصى المسموح به 15 زيارة.
+                            {ar ? "الهدف هو 12.5 زيارة في يوم العمل. الحد الأقصى المسموح به 15 زيارة." : "The target is 12.5 visits per workday. The allowed maximum is 15 visits."}
                         </p>
                         <p>
-                            لم يتم تقليل تكرار زيارات أي دكتور
-                            للوصول إلى المتوسط المستهدف.
+                            {ar ? "لم يتم تقليل تكرار زيارات أي دكتور للوصول إلى المتوسط المستهدف." : "No doctor's visit frequency was reduced to reach the target average."}
                         </p>
                     </div>
 
@@ -320,7 +320,7 @@ function VisitPlanning({
                         >
                             <h3>
                                 <AlertTriangle size={19} />
-                                تنبيهات الخطة
+                                {ar ? "تنبيهات الخطة" : "Plan notices"}
                             </h3>
 
                             {plan.warnings.map(
@@ -337,7 +337,7 @@ function VisitPlanning({
                             style={{ marginTop: 20 }}
                         >
                             <h3>
-                                الأخطاء التي تحتاج إلى مراجعة
+                                {ar ? "الأخطاء التي تحتاج إلى مراجعة" : "Issues that need review"}
                             </h3>
 
                             {plan.errors.map(
@@ -364,13 +364,12 @@ function VisitPlanning({
                                     <AlertTriangle size={19} />
                                 )}
 
-                                نتيجة مراجعة الخطة
+                                {ar ? "نتيجة مراجعة الخطة" : "Plan review result"}
                             </h3>
 
                             <p>
                                 {validation.valid
-                                    ? "الزيارات المجدولة تحترم الفواصل الزمنية وقواعد التوزيع."
-                                    : "الخطة بها مخالفات ويجب مراجعتها قبل اعتمادها."}
+                                    ? (ar ? "الزيارات المجدولة تحترم الفواصل الزمنية وقواعد التوزيع." : "Scheduled visits respect the gap rules and distribution rules.") : (ar ? "الخطة بها مخالفات ويجب مراجعتها قبل اعتمادها." : "The plan has violations and must be reviewed before approval.")}
                             </p>
 
                             {validation.errors.map(
@@ -387,9 +386,9 @@ function VisitPlanning({
                     >
                         <div className="section-header">
                             <div>
-                                <h2>جدول الزيارات اليومي</h2>
+                                <h2>{ar ? "جدول الزيارات اليومي" : "Daily Visit Schedule"}</h2>
                                 <p>
-                                    تفاصيل الدكاترة الموزعين على أيام العمل
+                                    {ar ? "تفاصيل الدكاترة الموزعين على أيام العمل" : "Doctors assigned across the working days"}
                                 </p>
                             </div>
 
@@ -418,13 +417,13 @@ function VisitPlanning({
                                     </h3>
 
                                     <strong>
-                                        {day.totalVisits} زيارة
+                                        {day.totalVisits} {ar ? "زيارة" : "visits"}
                                     </strong>
                                 </div>
 
                                 {day.visits.length === 0 ? (
                                     <p>
-                                        لا توجد زيارات في هذا اليوم.
+                                        {ar ? "لا توجد زيارات في هذا اليوم." : "No visits on this day."}
                                     </p>
                                 ) : (
                                     <div
@@ -433,11 +432,11 @@ function VisitPlanning({
                                         <table className="data-table">
                                             <thead>
                                                 <tr>
-                                                    <th>اسم الدكتور</th>
-                                                    <th>التخصص</th>
+                                                    <th>{ar ? "اسم الدكتور" : "Doctor"}</th>
+                                                    <th>{ar ? "التخصص" : "Specialty"}</th>
                                                     <th>Brick</th>
                                                     <th>Area</th>
-                                                    <th>رقم الزيارة</th>
+                                                    <th>{ar ? "رقم الزيارة" : "Visit #"}</th>
                                                 </tr>
                                             </thead>
 

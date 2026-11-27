@@ -1,3 +1,4 @@
+import { useI18n } from "./i18n";
 import { useState, useEffect } from "react";
 
 import Sidebar from "./components/Sidebar";
@@ -21,6 +22,7 @@ const FIXED_PLAN_END_DATE = "2026-12-30";
 const FIXED_CALL_RATE = "12.5";
 
 function App() {
+  const { language } = useI18n();
   const [activePage, setActivePage] = useState("لوحة التحكم");
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768);
 
@@ -121,7 +123,7 @@ function App() {
     if (!holidayDate) return;
 
     if (holidays.includes(holidayDate)) {
-      alert("التاريخ ده مسجل بالفعل في الإجازات");
+      alert(language === "ar" ? "التاريخ ده مسجل بالفعل في الإجازات" : "This date is already registered as a holiday");
       return;
     }
 
@@ -144,7 +146,7 @@ function App() {
     if (!meetingDate) return;
 
     if (meetings.includes(meetingDate)) {
-      alert("التاريخ ده مسجل بالفعل في الاجتماعات");
+      alert(language === "ar" ? "التاريخ ده مسجل بالفعل في الاجتماعات" : "This date is already registered as a meeting");
       return;
     }
 

@@ -72,7 +72,7 @@ function Sidebar({ activePage, setActivePage, sidebarOpen }) {
         </div>
 
         <div>
-          <strong>مدير النظام</strong>
+          <strong>{t("systemManager")}</strong>
           <span>Medical Representative</span>
         </div>
       </div>

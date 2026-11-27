@@ -1,5 +1,6 @@
 import { CalendarCheck, CalendarDays, CalendarOff, Settings } from "lucide-react";
 import { useI18n } from "../i18n";
+import { dayName } from "../i18n/engineText.js";
 import { usePersistentState } from "../utils/usePersistentState";
 
 function WorkSchedule({ setActivePage }) {
@@ -24,7 +25,7 @@ function WorkSchedule({ setActivePage }) {
       <div className="dashboard-grid">
         <div className="panel">
           <div className="panel-heading"><h3>{ar ? "أيام العمل الأسبوعية" : "Weekly Workdays"}</h3></div>
-          <div className="schedule-chip-list">{workingDays.length ? workingDays.map((day) => <span className="schedule-chip" key={day}>{day}</span>) : <p>{ar ? "لم يتم تحديد أيام عمل." : "No workdays selected."}</p>}</div>
+          <div className="schedule-chip-list">{workingDays.length ? workingDays.map((day) => <span className="schedule-chip" key={day}>{dayName(day, language)}</span>) : <p>{ar ? "لم يتم تحديد أيام عمل." : "No workdays selected."}</p>}</div>
         </div>
         <div className="panel">
           <div className="panel-heading"><h3>{ar ? "التقويم المسجل" : "Registered Calendar"}</h3></div>

@@ -68,7 +68,7 @@ function Dashboard({ callRate, setActivePage }) {
   );
 
   const formatDate = (date) =>
-    new Date(`${date}T12:00:00`).toLocaleDateString("ar-EG", {
+    new Date(`${date}T12:00:00`).toLocaleDateString(ar ? "ar-EG" : "en-GB", {
       weekday: "long",
       day: "numeric",
       month: "short",
@@ -99,7 +99,7 @@ function Dashboard({ callRate, setActivePage }) {
 
         <div className="date-label">
           <CalendarDays size={17} />
-          <span>{today.toLocaleDateString("ar-EG", {
+          <span>{today.toLocaleDateString(ar ? "ar-EG" : "en-GB", {
             weekday: "long",
             day: "numeric",
             month: "long",
@@ -117,8 +117,7 @@ function Dashboard({ callRate, setActivePage }) {
               : t("planNeedsSetup")}
           </h2>
           <p>
-            أكملت {completedSteps} من {setupSteps.length} خطوات أساسية
-            قبل إنشاء البلان الجديد.
+            {ar ? `أكملت ${completedSteps} من ${setupSteps.length} خطوات أساسية قبل إنشاء البلان الجديد.` : `You completed ${completedSteps} of ${setupSteps.length} basic steps before creating the new plan.`}
           </p>
 
           <button
@@ -141,11 +140,11 @@ function Dashboard({ callRate, setActivePage }) {
           style={{
             "--progress": `${setupProgress * 3.6}deg`,
           }}
-          aria-label={`نسبة اكتمال الإعدادات ${setupProgress}%`}
+          aria-label={ar ? `نسبة اكتمال الإعدادات ${setupProgress}%` : `Setup progress ${setupProgress}%`}
         >
           <div className="dashboard-progress-inner">
             <strong>{setupProgress}%</strong>
-            <span>جاهزية الخطة</span>
+            <span>{ar ? "جاهزية الخطة" : "Plan readiness"}</span>
           </div>
         </div>
       </div>
@@ -156,9 +155,9 @@ function Dashboard({ callRate, setActivePage }) {
             <Users size={23} />
           </div>
 
-          <span>إجمالي الدكاترة</span>
+          <span>{ar ? "إجمالي الدكاترة" : "Total Doctors"}</span>
           <h2>{doctors.length}</h2>
-          <small>عدد الدكاترة المسجلين</small>
+          <small>{ar ? "عدد الدكاترة المسجلين" : "Registered doctors"}</small>
         </div>
 
         <div className="stat-card">
@@ -166,9 +165,9 @@ function Dashboard({ callRate, setActivePage }) {
             <ClipboardList size={23} />
           </div>
 
-          <span>إجمالي الزيارات</span>
+          <span>{ar ? "إجمالي الزيارات" : "Total Visits"}</span>
           <h2>{totalVisits}</h2>
-          <small>الزيارات المطلوبة في الخطة</small>
+          <small>{ar ? "الزيارات المطلوبة في الخطة" : "Visits required in the plan"}</small>
         </div>
 
         <div className="stat-card">
@@ -178,7 +177,7 @@ function Dashboard({ callRate, setActivePage }) {
 
           <span>Call Rate Target</span>
           <h2>{callRate || "—"}</h2>
-          <small>المستهدف اليومي</small>
+          <small>{ar ? "المستهدف اليومي" : "Daily target"}</small>
         </div>
 
         <div className="stat-card">
@@ -186,9 +185,9 @@ function Dashboard({ callRate, setActivePage }) {
             <Map size={23} />
           </div>
 
-          <span>عدد المناطق</span>
+          <span>{ar ? "عدد المناطق" : "Areas"}</span>
           <h2>{areaCount}</h2>
-          <small>المناطق المسجلة</small>
+          <small>{ar ? "المناطق المسجلة" : "Registered areas"}</small>
         </div>
       </div>
 
@@ -197,11 +196,11 @@ function Dashboard({ callRate, setActivePage }) {
         <div className="panel plan-overview">
           <div className="panel-heading">
             <div>
-              <span className="panel-kicker">إعداد البلان</span>
-              <h3>خطوات البدء السريع</h3>
+              <span className="panel-kicker">{ar ? "إعداد البلان" : "Plan setup"}</span>
+              <h3>{ar ? "خطوات البدء السريع" : "Quick Start Steps"}</h3>
             </div>
             <span className="status">
-              {completedSteps}/{setupSteps.length} مكتملة
+              {completedSteps}/{setupSteps.length} {ar ? "مكتملة" : "done"}
             </span>
           </div>
 
@@ -222,7 +221,7 @@ function Dashboard({ callRate, setActivePage }) {
                 </span>
                 <span>
                   <strong>{step.label}</strong>
-                  <small>{step.complete ? "مكتمل" : "يحتاج إلى إعداد"}</small>
+                  <small>{step.complete ? (ar ? "مكتمل" : "Done") : (ar ? "يحتاج إلى إعداد" : "Needs setup")}</small>
                 </span>
                 <ArrowLeft className="setup-step-arrow" size={16} />
               </button>
@@ -233,8 +232,8 @@ function Dashboard({ callRate, setActivePage }) {
         <div className="panel schedule-overview">
           <div className="panel-heading">
             <div>
-              <span className="panel-kicker">التقويم</span>
-              <h3>المواعيد القادمة</h3>
+              <span className="panel-kicker">{ar ? "التقويم" : "Calendar"}</span>
+              <h3>{ar ? "المواعيد القادمة" : "Upcoming"}</h3>
             </div>
           </div>
 
@@ -244,11 +243,11 @@ function Dashboard({ callRate, setActivePage }) {
                 <CalendarDays size={19} />
               </div>
               <div>
-                <span>الإجازة القادمة</span>
+                <span>{ar ? "الإجازة القادمة" : "Next holiday"}</span>
                 <strong>
                   {upcomingHoliday
                     ? formatDate(upcomingHoliday)
-                    : "لا توجد إجازات مسجلة"}
+                    : (ar ? "لا توجد إجازات مسجلة" : "No holidays registered")}
                 </strong>
               </div>
             </div>
@@ -258,11 +257,11 @@ function Dashboard({ callRate, setActivePage }) {
                 <ClipboardList size={19} />
               </div>
               <div>
-                <span>اجتماع قادم</span>
+                <span>{ar ? "اجتماع قادم" : "Next meeting"}</span>
                 <strong>
                   {upcomingMeeting
                     ? formatDate(upcomingMeeting)
-                    : "لا توجد اجتماعات مسجلة"}
+                    : (ar ? "لا توجد اجتماعات مسجلة" : "No meetings registered")}
                 </strong>
               </div>
             </div>
@@ -272,11 +271,11 @@ function Dashboard({ callRate, setActivePage }) {
                 <Target size={19} />
               </div>
               <div>
-                <span>فترة البلان الحالية</span>
+                <span>{ar ? "فترة البلان الحالية" : "Current plan period"}</span>
                 <strong>
                   {planStartDate && planEndDate
                     ? `${formatDate(planStartDate)} — ${formatDate(planEndDate)}`
-                    : "لم يتم تحديد الفترة"}
+                    : (ar ? "لم يتم تحديد الفترة" : "Period not set")}
                 </strong>
               </div>
             </div>
@@ -286,7 +285,7 @@ function Dashboard({ callRate, setActivePage }) {
             className="secondary-button"
             onClick={() => setActivePage("الإعدادات")}
           >
-            إدارة التقويم والإعدادات
+            {ar ? "إدارة التقويم والإعدادات" : "Manage calendar and settings"}
             <ArrowLeft size={17} />
           </button>
         </div>

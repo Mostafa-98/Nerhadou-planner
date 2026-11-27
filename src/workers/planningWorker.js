@@ -2,9 +2,11 @@ import {
     generateVisitPlan,
     validateVisitPlan,
 } from "../utils/planningEngine";
+import { setEngineLang } from "../i18n/engineText.js";
 
 self.onmessage = (event) => {
     const payload = event.data;
+    setEngineLang(payload.language);
 
     const result = generateVisitPlan({
         doctors: payload.doctors,
@@ -34,7 +36,7 @@ self.onmessage = (event) => {
         // حتى تبقى للمخالفات الفعلية فقط (فواصل، خلط مناطق...).
         if (result.stats?.incompleteDoctors > 0) {
             const countLinePattern =
-                /: المطلوب \d+ زيارة والموجود \d+$/;
+                /: (المطلوب \d+ زيارة والموجود \d+|required \d+ visits?, found \d+)$/i;
             const shown = validation.errors.filter(
                 (entry) => !countLinePattern.test(entry)
             );

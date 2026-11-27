@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { setEngineLang } from "./i18n/engineText.js";
 import { createContext, useContext, useEffect, useState } from "react";
 
 const translations = {
@@ -19,6 +20,7 @@ const translations = {
     switchToEnglish: "التبديل إلى الإنجليزية",
     switchToArabic: "التبديل إلى العربية",
     switchToDark: "الوضع الداكن",
+    systemManager: "مدير النظام",
     switchToLight: "الوضع الفاتح",
     dashboardTitle: "لوحة التحكم",
     dashboardSubtitle: "تابع بيانات الدكاترة وخطة الزيارات الشهرية من مكان واحد.",
@@ -48,6 +50,7 @@ const translations = {
     switchToEnglish: "Switch to English",
     switchToArabic: "Switch to Arabic",
     switchToDark: "Dark mode",
+    systemManager: "System Manager",
     switchToLight: "Light mode",
     dashboardTitle: "Dashboard",
     dashboardSubtitle: "Track doctor data and the monthly visit plan in one place.",
@@ -77,6 +80,7 @@ export function I18nProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+    setEngineLang(language);
     document.documentElement.lang = language;
     try {
       localStorage.setItem("visit-planner-language", language);

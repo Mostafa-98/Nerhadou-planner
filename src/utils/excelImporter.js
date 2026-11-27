@@ -1,3 +1,8 @@
+import { tt, getEngineLang } from "../i18n/engineText.js";
+
+function currentLangSep() {
+    return getEngineLang() === "en" ? ", " : "، ";
+}
 import * as XLSX from "xlsx";
 
 // The planner truly needs three things per doctor: a name, an area
@@ -23,7 +28,7 @@ function normalizeHeader(header) {
 
 const FIELDS = {
   name: {
-    label: "اسم الدكتور",
+    get label() { return getEngineLang() === "en" ? "Doctor name" : "اسم الدكتور"; },
     example: "Name",
     required: true,
     aliases: [
@@ -32,7 +37,7 @@ const FIELDS = {
     ],
   },
   brick: {
-    label: "المنطقة / البريك",
+    get label() { return getEngineLang() === "en" ? "Area / Brick" : "المنطقة / البريك"; },
     example: "Brick",
     required: true,
     aliases: [
@@ -41,7 +46,7 @@ const FIELDS = {
     ],
   },
   currentFrequency: {
-    label: "الفريكونسي (عدد الزيارات)",
+    get label() { return getEngineLang() === "en" ? "Frequency (visit count)" : "الفريكونسي (عدد الزيارات)"; },
     example: "Current Frequency",
     required: true,
     aliases: [
@@ -53,12 +58,12 @@ const FIELDS = {
   },
   // Optional fields: used for display/context only, never required.
   specialty: {
-    label: "التخصص",
+    get label() { return getEngineLang() === "en" ? "Specialty" : "التخصص"; },
     required: false,
     aliases: ["specialty", "speciality", "التخصص", "تخصص"],
   },
   workplace: {
-    label: "مكان العمل",
+    get label() { return getEngineLang() === "en" ? "Workplace" : "مكان العمل"; },
     required: false,
     aliases: ["workplace", "work place", "مكان العمل", "جهه العمل", "المستشفي"],
   },
@@ -144,7 +149,7 @@ export function importDoctorsFromExcel(file) {
         });
 
         if (rows.length === 0) {
-          throw new Error("ملف Excel لا يحتوي على بيانات.");
+          throw new Error(tt("excelNoData"));
         }
 
         const actualColumns = Object.keys(rows[0]);
@@ -159,7 +164,7 @@ export function importDoctorsFromExcel(file) {
 
         if (missing.length > 0) {
           throw new Error(
-            `الأعمدة التالية غير موجودة في الملف: ${missing.join("، ")}`
+            tt("excelMissingColumns", { columns: missing.join(currentLangSep()) })
           );
         }
 
@@ -183,7 +188,7 @@ export function importDoctorsFromExcel(file) {
           }));
 
         if (doctors.length === 0) {
-          throw new Error("ملف Excel لا يحتوي على بيانات دكاترة صالحة.");
+          throw new Error(tt("excelNoValidDoctors"));
         }
 
         resolve(doctors);
@@ -193,7 +198,7 @@ export function importDoctorsFromExcel(file) {
     };
 
     reader.onerror = () => {
-      reject(new Error("حصل خطأ أثناء قراءة ملف Excel."));
+      reject(new Error(tt("excelReadError")));
     };
 
     reader.readAsArrayBuffer(file);

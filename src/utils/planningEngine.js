@@ -1,3 +1,4 @@
+import { tt } from "../i18n/engineText.js";
 const TARGET_CALL_RATE = 12.5;
 const MAX_DAILY_VISITS = 15;
 
@@ -1155,7 +1156,7 @@ export function validateVisitPlan({
         // لا يوجد حد أدنى إجباري.
         if (count > MAX_DAILY_VISITS) {
             errors.push(
-                `يوم ${day.date}: عدد الزيارات ${count}، والحد الأقصى ${MAX_DAILY_VISITS}`
+                tt("dayExceedsMax", { date: day.date, count, max: MAX_DAILY_VISITS })
             );
         }
 
@@ -1174,13 +1175,13 @@ export function validateVisitPlan({
 
         if (!canCombineBricks(bricks)) {
             errors.push(
-                `يوم ${day.date}: يوجد خلط غير مسموح بين المناطق`
+                tt("dayMixesZones", { date: day.date })
             );
         }
 
         if (!availableDateSet.has(day.date)) {
             warnings.push(
-                `التاريخ ${day.date} غير موجود ضمن أيام العمل المتاحة`
+                tt("dateNotWorking", { date: day.date })
             );
         }
     }
@@ -1207,7 +1208,7 @@ export function validateVisitPlan({
 
         if (doctorVisits.length !== required) {
             errors.push(
-                `${doctor.name}: المطلوب ${required} زيارة والموجود ${doctorVisits.length}`
+                tt("doctorCountMismatch", { name: doctor.name, required, actual: doctorVisits.length })
             );
         }
 
@@ -1222,7 +1223,7 @@ export function validateVisitPlan({
                 gap > MAX_GAP_DAYS
             ) {
                 errors.push(
-                    `${doctor.name}: الفاصل بين زيارتين ${gap} يوم، والمسموح من ${MIN_GAP_DAYS} إلى ${MAX_GAP_DAYS}`
+                    tt("doctorGapOutOfRange", { name: doctor.name, gap, min: MIN_GAP_DAYS, max: MAX_GAP_DAYS })
                 );
             }
         }
@@ -1274,7 +1275,7 @@ export function generateVisitPlan({
             success: false,
             days: [],
             errors: [
-                "لا توجد أيام عمل متاحة في الفترة المحددة",
+                tt("noWorkingDays"),
             ],
             warnings: [],
             stats: {
@@ -1296,7 +1297,7 @@ export function generateVisitPlan({
             success: false,
             days: [],
             errors: [
-                `عدد الزيارات المطلوبة ${requiredVisits} أكبر من السعة القصوى ${availableDates.length * MAX_DAILY_VISITS} زيارة`,
+                tt("requiredExceedsCapacity", { required: requiredVisits, capacity: availableDates.length * MAX_DAILY_VISITS }),
             ],
             warnings: [],
             stats: {
@@ -1354,7 +1355,7 @@ export function generateVisitPlan({
 
     const capacityWarning =
         minimumBrickDays > availableDates.length
-            ? `عدد أيام العمل المتاحة (${availableDates.length}) أقل من الحد الأدنى اللازم لتغطية المناطق بالفريكونسي المطلوب (${minimumBrickDays} يوم على الأقل، لأن كل منطقة تحتاج أياماً مستقلة وزيارات الدكتور الواحد في أيام مختلفة بفاصل ${MIN_GAP_DAYS} أيام على الأقل). قلل الفريكونسي، أو وسّع فترة البلان، أو زوّد أيام العمل الأسبوعية.`
+            ? tt("notEnoughDaysForZones", { available: availableDates.length, minimum: minimumBrickDays })
             : null;
 
     let bestAttempt = null;
@@ -1555,7 +1556,7 @@ export function generateVisitPlan({
 
     if (planIncomplete) {
         errors.unshift(
-            `الخطة غير مكتملة: تم توزيع ${scheduledVisits} من أصل ${requiredVisits} زيارة. الزيارات الناقصة موضحة بالأسفل.`
+            tt("planIncomplete", { scheduled: scheduledVisits, required: requiredVisits })
         );
 
         if (capacityWarning) {
@@ -1567,7 +1568,7 @@ export function generateVisitPlan({
 
         for (const item of preview) {
             errors.push(
-                `${item.doctor.name}: المطلوب ${item.required} زيارة والمجدول ${item.scheduled}`
+                tt("doctorScheduledVsRequired", { name: item.doctor.name, required: item.required, scheduled: item.scheduled })
             );
         }
 
@@ -1575,7 +1576,7 @@ export function generateVisitPlan({
             incompleteDoctorsBeforeOutput.length > 10
         ) {
             errors.push(
-                `...و ${incompleteDoctorsBeforeOutput.length - 10} دكاترة آخرين غير مكتملين`
+                tt("moreIncompleteDoctors", { count: incompleteDoctorsBeforeOutput.length - 10 })
             );
         }
 
@@ -1595,13 +1596,13 @@ export function generateVisitPlan({
                 minimumSpan > periodSpanDays
             ) {
                 errors.push(
-                    `${item.doctor.name}: الفريكونسي ${item.required} لا يمكن تحقيقه داخل فترة البلان؛ يحتاج ${minimumSpan} يوم على الأقل بين أول وآخر زيارة بفاصل ${MIN_GAP_DAYS} أيام، وفترة البلان ${periodSpanDays} يوم فقط.`
+                    tt("frequencyNotAchievable", { name: item.doctor.name, required: item.required, minimumSpan, minGap: MIN_GAP_DAYS, periodSpan: periodSpanDays })
                 );
             }
         }
 
         errors.push(
-            "لإكمال الخطة: قلل الفريكونسي للدكاترة الناقصين، أو وسّع فترة البلان من الإعدادات، أو قلل أيام الإجازات والاجتماعات المستبعدة."
+            tt("howToComplete")
         );
     }
 
@@ -1657,7 +1658,7 @@ export function generateVisitPlan({
 
     if (scheduledVisits !== requiredVisits) {
         warnings.push(
-            "تعذر توزيع جميع الزيارات المطلوبة بالكامل"
+            tt("cannotScheduleAll")
         );
     }
 
@@ -1666,7 +1667,7 @@ export function generateVisitPlan({
         MAX_DAILY_VISITS
     ) {
         warnings.push(
-            `متوسط الزيارات اليومي يتجاوز الحد الأقصى ${MAX_DAILY_VISITS}`
+            tt("averageExceedsMax", { max: MAX_DAILY_VISITS })
         );
     }
 
@@ -1676,7 +1677,7 @@ export function generateVisitPlan({
         ) > 0.5
     ) {
         warnings.push(
-            `متوسط الزيارات ${averageVisitsPerDay.toFixed(2)}، وهو بعيد نسبياً عن المستهدف ${effectiveCallRate}. لم يتم تغيير تكرار زيارات الدكاترة لضبط المتوسط.`
+            tt("averageFarFromTarget", { average: averageVisitsPerDay.toFixed(2), target: effectiveCallRate })
         );
     }
 
