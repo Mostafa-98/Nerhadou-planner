@@ -317,10 +317,17 @@ function Settings({
               )}
               <div className="export-actions" style={{ marginTop: 8 }}>
                 {!pastePreview.current && (
-                <button type="button" className="export-button" onClick={applyPastedGroups} disabled={!pastePreview.groups.length}>
+                <button type="button" className="export-button" onClick={applyPastedGroups} disabled={!pastePreview.groups.length || pastePreview.unmatched.length > 0} title={pastePreview.unmatched.length ? (ar ? "عطل الاستبدال حتى تتطابق كل الأسماء" : "Replace disabled until all names match") : ""}>
                   <ClipboardPaste size={15} />
                   {ar ? "استبدال المجموعات الحالية" : "Replace current groups"}
                 </button>
+                )}
+                {!pastePreview.current && pastePreview.unmatched.length > 0 && (
+                  <p className="paste-warning" style={{ marginTop: 4 }}>
+                    {ar
+                      ? "زرار الاستبدال متعطل حتى تتطابق كل الأسماء مع الملف — كده مجموعاتك المحفوظة مستحيل تتمسح بمعاينة ناقصة."
+                      : "Replace is disabled until every name matches the sheet - your saved groups can never be wiped by an incomplete preview."}
+                  </p>
                 )}
                 <button type="button" className="export-button" onClick={() => setPastePreview(null)}>
                   {ar ? "إلغاء" : "Cancel"}

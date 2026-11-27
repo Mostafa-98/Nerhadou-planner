@@ -528,6 +528,7 @@ function VisitPlanning({
 
             {(() => {
                 const ungrouped = ungroupedAreas(doctors, zoneGroups);
+                if (isGenerating) return null;
                 if (!doctors.length || !ungrouped.length) return null;
                 return (
                     <div className="ungrouped-warning">
@@ -550,7 +551,13 @@ function VisitPlanning({
             })()}
 
 
-            {relief && relief.deficit > 0 && (
+            {!isGenerating &&
+                plan &&
+                plan.stats &&
+                Number(plan.stats.scheduledVisits || 0) <
+                    Number(plan.stats.requiredVisits || 0) &&
+                relief &&
+                relief.deficit > 0 && (
                 <div
                     className="settings-card"
                     style={{ marginBottom: 20 }}
