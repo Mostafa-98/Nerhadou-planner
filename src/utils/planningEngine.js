@@ -297,6 +297,267 @@ function getDateList({
     return dates;
 }
 
+
+// الأيام المستبعدة من فترة البلان مع سبب الاستبعاد (يوم راحة أسبوعي
+// أو إجازة أو اجتماع) — للعرض على المستخدم.
+export function getExcludedDateList({
+    startDate,
+    endDate,
+    workingDays,
+    holidays = [],
+    meetings = [],
+}) {
+    const start = normalizeDate(startDate);
+    const end = normalizeDate(endDate);
+
+    if (!start || !end || start > end) {
+        return [];
+    }
+
+    const allowedDays = new Set(
+        (workingDays || [6, 0, 1, 2, 3])
+            .map(getWorkingDayNumber)
+            .filter((day) => day !== null)
+    );
+
+    const toKey = (item) => {
+        const date = normalizeDate(item);
+        return date ? formatDate(date) : null;
+    };
+    const holidaySet = new Set(holidays.map(toKey).filter(Boolean));
+    const meetingSet = new Set(meetings.map(toKey).filter(Boolean));
+
+    const out = [];
+    const current = new Date(start);
+
+    while (current <= end) {
+        const dateKey = formatDate(current);
+        const reasons = [];
+        if (!allowedDays.has(current.getDay())) reasons.push("weekday");
+        if (holidaySet.has(dateKey)) reasons.push("holiday");
+        if (meetingSet.has(dateKey)) reasons.push("meeting");
+        if (reasons.length) {
+            out.push({
+                date: dateKey,
+                dayName: ARABIC_WEEK_DAYS[current.getDay()],
+                reasons,
+            });
+        }
+        current.setDate(current.getDate() + 1);
+    }
+
+    return out;
+}
+
+// الحد الأدنى من الأيام لكل مجموعة مناطق:
+// أكبر قيمة بين (سعة 15 زيارة في اليوم) و(أعلى فريكونسي في المجموعة
+// لأن زيارات الدكتور الواحد لازم تكون في أيام مختلفة بفاصل 6+ أيام).
+export function computeGroupMinimums(doctors, zoneGroups) {
+    const zoneGroupMap = buildZoneGroupMap(zoneGroups);
+    const reqs = new Map();
+
+    for (const doctor of doctors || []) {
+        const brick = getDoctorZone(doctor, zoneGroupMap);
+        const frequency = getDoctorFrequency(doctor);
+        if (frequency <= 0) continue;
+        if (!reqs.has(brick)) {
+            reqs.set(brick, {
+                brick,
+                visits: 0,
+                maxFrequency: 0,
+                doctors: [],
+            });
+        }
+        const info = reqs.get(brick);
+        info.visits += frequency;
+        info.maxFrequency = Math.max(info.maxFrequency, frequency);
+        info.doctors.push({
+            name: doctor.name || doctor.id || "?",
+            frequency,
+        });
+    }
+
+    const out = [];
+    for (const info of reqs.values()) {
+        out.push({
+            ...info,
+            days: Math.max(
+                Math.ceil(info.visits / MAX_DAILY_VISITS),
+                info.maxFrequency
+            ),
+        });
+    }
+    out.sort((a, b) => b.days - a.days);
+    return out;
+}
+
+function simulateFrequencyCuts(groups, availableCount) {
+    const sim = groups.map((g) => ({
+        brick: g.brick,
+        visits: g.visits,
+        doctors: g.doctors.map((d) => ({ ...d })),
+    }));
+    const daysOf = (g) => {
+        const maxFreq = Math.max(0, ...g.doctors.map((d) => d.frequency));
+        return Math.max(Math.ceil(g.visits / MAX_DAILY_VISITS), maxFreq);
+    };
+    let need = sim.reduce((s, g) => s + daysOf(g), 0);
+    const cuts = new Map();
+    let guard = 0;
+
+    while (need > availableCount && guard < 200) {
+        guard++;
+        let best = null;
+
+        for (const g of sim) {
+            const maxFreq = Math.max(
+                0,
+                ...g.doctors.map((d) => d.frequency)
+            );
+            const capacityDays = Math.ceil(g.visits / MAX_DAILY_VISITS);
+            const days = Math.max(capacityDays, maxFreq);
+            if (days <= 1) continue;
+
+            if (maxFreq >= capacityDays) {
+                // مربوط بالفريكونسي: خفض كل دكاترة أعلى فريكونسي بمقدار 1
+                const top = g.doctors.filter(
+                    (d) => d.frequency === maxFreq && d.frequency > 1
+                );
+                if (!top.length) continue;
+                const newDays = Math.max(
+                    Math.ceil((g.visits - top.length) / MAX_DAILY_VISITS),
+                    maxFreq - 1,
+                    ...g.doctors
+                        .filter((d) => d.frequency !== maxFreq)
+                        .map((d) => d.frequency),
+                    0
+                );
+                const saved = days - newDays;
+                if (saved > 0) {
+                    const cost = top.length / saved;
+                    if (!best || cost < best.cost) {
+                        best = { g, kind: "freq", targets: top, saved, cost };
+                    }
+                }
+            }
+
+            // مربوط بالسعة: قلل زيارات بمقدار الفائض عن أيام أقل
+            const excess = g.visits - MAX_DAILY_VISITS * (days - 1);
+            if (excess > 0 && days - 1 >= 1) {
+                const candidates = g.doctors
+                    .filter((d) => d.frequency > 1)
+                    .sort((a, b) => a.frequency - b.frequency);
+                if (candidates.length >= excess) {
+                    const targets = candidates.slice(0, excess);
+                    const newVisits = g.visits - targets.length;
+                    const newMax = Math.max(
+                        0,
+                        ...g.doctors.map((d) =>
+                            targets.includes(d)
+                                ? d.frequency - 1
+                                : d.frequency
+                        )
+                    );
+                    const newDays = Math.max(
+                        Math.ceil(newVisits / MAX_DAILY_VISITS),
+                        newMax
+                    );
+                    const saved = days - newDays;
+                    if (saved > 0) {
+                        const cost = targets.length / saved;
+                        if (!best || cost < best.cost) {
+                            best = {
+                                g,
+                                kind: "capacity",
+                                targets,
+                                saved,
+                                cost,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!best) break;
+
+        for (const d of best.targets) {
+            d.frequency -= 1;
+            best.g.visits -= 1;
+            cuts.set(d.name, (cuts.get(d.name) || 0) + 1);
+        }
+        need = sim.reduce((s, g) => s + daysOf(g), 0);
+    }
+
+    if (!cuts.size) return null;
+
+    const totalCut = [...cuts.values()].reduce((a, b) => a + b, 0);
+    return {
+        cuts: [...cuts.entries()]
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count),
+        totalCut,
+        newNeed: need,
+        reached: need <= availableCount,
+    };
+}
+
+// خيارات عملية للوصول إلى خطة مكتملة عندما يتجاوز الحد الأدنى من
+// الأيام الأيام المتاحة. لا يطبَّق أي خيار تلقائياً — عرض فقط.
+export function computeReliefOptions({
+    doctors,
+    zoneGroups,
+    availableCount,
+    excluded = [],
+}) {
+    const groups = computeGroupMinimums(doctors, zoneGroups);
+    const need = groups.reduce((s, g) => s + g.days, 0);
+    const deficit = need - availableCount;
+
+    if (deficit <= 0) {
+        return { need, availableCount, deficit: 0, groups, options: [] };
+    }
+
+    const options = [];
+
+    if (excluded.length > 0) {
+        options.push({
+            id: "reclaim",
+            excludedCount: excluded.length,
+            covers: Math.min(excluded.length, deficit),
+        });
+    }
+
+    options.push({ id: "extend", days: deficit });
+
+    const merges = [];
+    for (let i = 0; i < groups.length; i++) {
+        for (let j = i + 1; j < groups.length; j++) {
+            const a = groups[i];
+            const b = groups[j];
+            const merged = Math.max(
+                Math.ceil((a.visits + b.visits) / MAX_DAILY_VISITS),
+                Math.max(a.maxFrequency, b.maxFrequency)
+            );
+            const saved = a.days + b.days - merged;
+            if (saved > 0) {
+                merges.push({ a: a.brick, b: b.brick, saved });
+            }
+        }
+    }
+    merges.sort((x, y) => y.saved - x.saved);
+    if (merges.length) {
+        options.push({ id: "merge", merges: merges.slice(0, 3) });
+    }
+
+    const cuts = simulateFrequencyCuts(groups, availableCount);
+    if (cuts) {
+        options.push({ id: "freq", ...cuts });
+    }
+
+    return { need, availableCount, deficit, groups, options };
+}
+
 function canCombineBricks(bricks) {
     const uniqueBricks = [
         ...new Set(
@@ -543,7 +804,10 @@ function buildZoneGroupMap(zoneGroups) {
                     .map((brick) => normalizeBrick(brick))
                     .filter(
                         (brick) =>
-                            brick && brick !== "غير محدد"
+                            brick &&
+                            brick !== "غير محدد" &&
+                            brick !== "منطقه جديده" &&
+                            brick !== "new area"
                     )
             ),
         ];

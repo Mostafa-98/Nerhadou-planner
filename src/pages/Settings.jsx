@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useI18n } from "../i18n";
 import { dayName } from "../i18n/engineText.js";
@@ -149,8 +149,31 @@ function Settings({
   };
 
   const addGroup = () => {
-    setZoneGroups((current) => [...current, [ar ? "منطقة جديدة" : "New area"]]);
+    setZoneGroups((current) => [...current, []]);
   };
+
+  // تنظيف لمرة واحدة: إزالة أي عناصر مؤقتة ("منطقة جديدة" /
+  // "New area") تسربت إلى مجموعات محفوظة من نسخة أقدم.
+  useEffect(() => {
+    setZoneGroups((current) => {
+      if (!Array.isArray(current)) return current;
+      const cleaned = current
+        .map((group) =>
+          (Array.isArray(group) ? group : []).filter(
+            (brick) =>
+              brick &&
+              brick !== "منطقة جديدة" &&
+              brick !== "New area"
+          )
+        )
+        .filter((group) => group.length > 0);
+      return cleaned.length === current.length &&
+        cleaned.every((gr, i) => gr.length === current[i].length)
+        ? current
+        : cleaned;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const removeGroup = (groupIndex) => {
     setZoneGroups((current) =>

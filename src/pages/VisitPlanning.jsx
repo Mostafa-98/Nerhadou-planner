@@ -19,6 +19,10 @@ import { usePersistentState } from "../utils/usePersistentState";
 import { exportPlanToExcel, printPlanToPdf } from "../utils/planExporter";
 import { parseActualsFile, matchActuals } from "../utils/actualsImporter";
 import { ungroupedAreas } from "../utils/areaGrouping";
+import {
+    getExcludedDateList,
+    computeReliefOptions,
+} from "../utils/planningEngine";
 import { validateVisitPlan } from "../utils/planningEngine";
 
 import { useI18n } from "../i18n";
@@ -179,6 +183,9 @@ function VisitPlanning({
         setMessage("");
         setPlan(null);
         setValidation(null);
+        // خطة جديدة من الصفر: أيام الفائت القديمة لا تخصها وكانت
+        // تُظهر تنبيه "يحتاج إعادة توزيع" كاذباً.
+        setMissedDays([]);
 
         if (!planStartDate || !planEndDate) {
             setMessage(
@@ -440,6 +447,40 @@ function VisitPlanning({
                 (holidaySet.has(day.date) || missedSet.has(day.date))
         );
 
+    const excludedDates =
+        planStartDate && planEndDate
+            ? getExcludedDateList({
+                  startDate: planStartDate,
+                  endDate: planEndDate,
+                  workingDays,
+                  holidays,
+                  meetings,
+              })
+            : [];
+    const periodDayCount =
+        planStartDate && planEndDate
+            ? Math.max(
+                  0,
+                  Math.round(
+                      (new Date(planEndDate) - new Date(planStartDate)) /
+                          86400000
+                  ) + 1
+              )
+            : 0;
+    const availableCount = Math.max(
+        0,
+        periodDayCount - excludedDates.length
+    );
+    const relief =
+        doctors.length && availableCount > 0
+            ? computeReliefOptions({
+                  doctors,
+                  zoneGroups,
+                  availableCount,
+                  excluded: excludedDates,
+              })
+            : null;
+
     const actualCallRate =
         Number(stats.averageVisitsPerDay || 0);
 
@@ -507,6 +548,157 @@ function VisitPlanning({
                     </div>
                 );
             })()}
+
+
+            {relief && relief.deficit > 0 && (
+                <div
+                    className="settings-card"
+                    style={{ marginBottom: 20 }}
+                >
+                    <h3>
+                        <AlertTriangle size={19} />
+                        {ar
+                            ? `الفترة الحالية لا تكفي: تحتاج ${relief.need} يوم على الأقل والمتاح ${relief.availableCount} يوم فقط`
+                            : `The current period is not enough: at least ${relief.need} days needed, only ${relief.availableCount} available`}
+                    </h3>
+                    <p>
+                        {ar
+                            ? "اختر أحد هذه الخيارات وعدّله بنفسك من الإعدادات — لا يتغير أي شيء تلقائياً:"
+                            : "Choose one of these options and apply it yourself in Settings - nothing changes automatically:"}
+                    </p>
+                    <ul className="relief-options">
+                        {relief.options.map((option) => {
+                            if (option.id === "reclaim") {
+                                return (
+                                    <li key="reclaim">
+                                        <strong>
+                                            {ar
+                                                ? `اسمح بالعمل في أيام من الـ ${option.excludedCount} يوم المستبعدة بالأسفل`
+                                                : `Allow working on some of the ${option.excludedCount} excluded days listed below`}
+                                        </strong>
+                                        <span>
+                                            {ar
+                                                ? ` — كل يوم تسترجعه يغطي يوماً من الـ ${relief.deficit} الناقصة (تحتاج ${relief.deficit}).`
+                                                : ` - each day you reclaim covers one of the ${relief.deficit} missing days (you need ${relief.deficit}).`}
+                                        </span>
+                                    </li>
+                                );
+                            }
+                            if (option.id === "extend") {
+                                return (
+                                    <li key="extend">
+                                        <strong>
+                                            {ar
+                                                ? `مدّد فترة البلان ${option.days} يوم (غيّر تاريخ النهاية من الإعدادات)`
+                                                : `Extend the plan period by ${option.days} days (change the end date in Settings)`}
+                                        </strong>
+                                        <span>
+                                            {ar
+                                                ? " — يكفي لتغطية كل الزيارات المطلوبة."
+                                                : " - enough to cover all required visits."}
+                                        </span>
+                                    </li>
+                                );
+                            }
+                            if (option.id === "merge") {
+                                return option.merges.map((m, i) => (
+                                    <li key={`merge-${i}`}>
+                                        <strong>
+                                            {ar
+                                                ? `لو متقاربين عندك: ادمج «${m.a}» مع «${m.b}» في مجموعة واحدة`
+                                                : `If they are neighbors for you: merge "${m.a}" with "${m.b}" into one group`}
+                                        </strong>
+                                        <span>
+                                            {ar
+                                                ? ` — يوفر ${m.saved} يوم من الحد الأدنى.`
+                                                : ` - saves ${m.saved} day(s) from the minimum.`}
+                                        </span>
+                                    </li>
+                                ));
+                            }
+                            if (option.id === "freq") {
+                                const names = option.cuts
+                                    .slice(0, 8)
+                                    .map((c) => c.name)
+                                    .join(ar ? "، " : ", ");
+                                const more =
+                                    option.cuts.length > 8
+                                        ? ar
+                                            ? ` و ${option.cuts.length - 8} آخرين`
+                                            : ` and ${option.cuts.length - 8} more`
+                                        : "";
+                                return (
+                                    <li key="freq">
+                                        <strong>
+                                            {ar
+                                                ? `خفّض الفريكونسي بمقدار 1 لـ ${option.cuts.length} دكتور (${names}${more})`
+                                                : `Lower the frequency by 1 for ${option.cuts.length} doctors (${names}${more})`}
+                                        </strong>
+                                        <span>
+                                            {ar
+                                                ? ` — إجمالي ${option.totalCut} زيارة أقل، يوفر ${relief.need - option.newNeed} يوم${option.reached ? " ويكفي للتغطية الكاملة" : " (غير كافٍ وحده)"}.`
+                                                : ` - ${option.totalCut} fewer visits in total, saves ${relief.need - option.newNeed} day(s)${option.reached ? " and reaches full coverage" : " (not enough alone)"}.`}
+                                        </span>
+                                    </li>
+                                );
+                            }
+                            return null;
+                        })}
+                    </ul>
+                    <p className="section-description">
+                        {ar
+                            ? "الحد الأدنى لكل مجموعة = الأكبر بين (زيارات المجموعة ÷ 15 زيارة في اليوم) و(أعلى فريكونسي فيها، لأن زيارات الدكتور الواحد لازم تكون في أيام مختلفة بفاصل 6 أيام على الأقل). يوم المجموعة الواحدة لا يمكن أن يضم منطقة من مجموعة أخرى."
+                            : "A group's minimum = the larger of (group visits / 15 per day) and (its highest frequency, since one doctor's visits must be on different days at least 6 days apart). A group's day can never hold an area from another group."}
+                    </p>
+                </div>
+            )}
+
+            {excludedDates.length > 0 && (
+                <div
+                    className="settings-card"
+                    style={{ marginBottom: 20 }}
+                >
+                    <h3>
+                        <CalendarDays size={19} />
+                        {ar
+                            ? `الأيام المستبعدة من الفترة (${excludedDates.length} يوم)`
+                            : `Days excluded from the period (${excludedDates.length})`}
+                    </h3>
+                    <p>
+                        {excludedDates
+                            .slice(0, 16)
+                            .map(
+                                (e) =>
+                                    `${e.date} ${e.dayName} (${e.reasons
+                                        .map((r) =>
+                                            ar
+                                                ? r === "weekday"
+                                                    ? "راحة أسبوعية"
+                                                    : r === "holiday"
+                                                      ? "إجازة"
+                                                      : "اجتماع"
+                                                : r === "weekday"
+                                                  ? "weekly rest"
+                                                  : r === "holiday"
+                                                    ? "holiday"
+                                                    : "meeting"
+                                        )
+                                        .join("+")})`
+                            )
+                            .join(ar ? "، " : ", ")}
+                        {excludedDates.length > 16
+                            ? ar
+                                ? ` …و ${excludedDates.length - 16} يوم آخر`
+                                : ` …and ${excludedDates.length - 16} more`
+                            : ""}
+                    </p>
+                    <p className="section-description">
+                        {ar
+                            ? "لو يوم من دول مستبعد بالغلط، عدّل أيام العمل أو الإجازات أو الاجتماعات من صفحة الإعدادات."
+                            : "If any of these is excluded by mistake, adjust working days, holidays or meetings in Settings."}
+                    </p>
+                </div>
+            )}
 
             <div
                 className="settings-card"
