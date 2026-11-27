@@ -6,7 +6,6 @@ import {
   ClipboardList,
   BarChart3,
   Settings,
-  Stethoscope,
   UserRound,
 } from "lucide-react";
 import { useI18n } from "../i18n";
@@ -38,14 +37,12 @@ function Sidebar({ activePage, setActivePage, sidebarOpen }) {
   return (
     <aside className={`sidebar ${sidebarOpen ? "" : "closed"}`}>
       <div className="brand">
-        <div className="brand-icon">
-          <Stethoscope size={25} />
-        </div>
-
-        <div>
-          <h2>Visit Planner</h2>
-          <span>Medical Management</span>
-        </div>
+        <img
+          className="brand-logo"
+          src={`${import.meta.env.BASE_URL}nerhadou-logo.png`}
+          alt="Nerhadou International"
+        />
+        <div className="brand-name">Visit Planner</div>
       </div>
 
       <div className="menu-title">{t("menuTitle")}</div>

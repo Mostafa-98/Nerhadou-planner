@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
@@ -29,6 +29,20 @@ function App() {
   const [meetingDate, setMeetingDate] = useState("");
 
   // Call Rate
+  const [theme, setTheme] = usePersistentState(
+    "visit-planner-theme",
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light"
+  );
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  const toggleTheme = () =>
+    setTheme((current) => (current === "dark" ? "light" : "dark"));
+
   const [callRate, setCallRate] = usePersistentState(
     "visit-planner-call-rate",
     FIXED_CALL_RATE
@@ -236,7 +250,7 @@ function App() {
   };
 
   return (
-    <div className="app-container" dir="rtl">
+    <div className="app-container">
 
       {/* Sidebar */}
       <Sidebar
@@ -262,6 +276,8 @@ function App() {
           activePage={activePage}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
+          theme={theme}
+          toggleTheme={toggleTheme}
         />
 
         {/* Page Content */}

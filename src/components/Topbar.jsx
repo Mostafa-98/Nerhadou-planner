@@ -4,10 +4,12 @@ import {
   Search,
   UserRound,
   Languages,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useI18n } from "../i18n";
 
-function Topbar({ activePage, sidebarOpen, setSidebarOpen }) {
+function Topbar({ activePage, sidebarOpen, setSidebarOpen, theme, toggleTheme }) {
   const { language, toggleLanguage, t } = useI18n();
   const pageTitles = {
     "لوحة التحكم": t("dashboard"),
@@ -37,6 +39,15 @@ function Topbar({ activePage, sidebarOpen, setSidebarOpen }) {
       </div>
 
       <div className="topbar-left">
+        <button
+          className="icon-button theme-toggle"
+          type="button"
+          onClick={toggleTheme}
+          title={theme === "dark" ? t("switchToLight") : t("switchToDark")}
+          aria-label={theme === "dark" ? t("switchToLight") : t("switchToDark")}
+        >
+          {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+        </button>
         <button
           className="language-button"
           type="button"
