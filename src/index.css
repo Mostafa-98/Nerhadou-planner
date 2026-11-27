@@ -1920,3 +1920,263 @@ button {
   align-items: center;
   justify-content: center;
 }
+
+/* ============================================================
+   Design refinement pass 2.0
+   Hierarchy, elevation, motion, focus, sidebar contrast fix
+   ============================================================ */
+
+:root {
+  --sidebar-text: #a8bdd2;
+  --sidebar-text-strong: #ffffff;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.07);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.11);
+  --sidebar-border: rgba(255, 255, 255, 0.14);
+  --shadow-sm: 0 1px 2px rgba(16, 42, 73, 0.05), 0 4px 14px rgba(16, 42, 73, 0.05);
+  --shadow-md: 0 2px 6px rgba(16, 42, 73, 0.07), 0 14px 34px rgba(16, 42, 73, 0.1);
+  --ring: 0 0 0 3px rgba(36, 109, 169, 0.28);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-theme='dark'] {
+  --sidebar-text: #93a9c0;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 38px rgba(0, 0, 0, 0.45);
+  --ring: 0 0 0 3px rgba(74, 155, 219, 0.35);
+}
+
+::selection {
+  background: rgba(36, 109, 169, 0.22);
+}
+
+/* Smooth theme switching */
+body,
+.topbar,
+.panel,
+.stat-card,
+.doctor-stat-card,
+.work-summary-card,
+.area-card,
+.doctors-table th,
+.doctors-table td,
+.menu-item,
+.sidebar {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+}
+
+/* ---------- Sidebar (fixes dark-mode hover contrast) ---------- */
+
+.menu-title {
+  color: var(--sidebar-text);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.menu-item {
+  color: var(--sidebar-text);
+  border-inline-start: 3px solid transparent;
+}
+
+.menu-item:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-strong);
+}
+
+.menu-item.active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-text-strong);
+  border-inline-start-color: var(--accent);
+  box-shadow: none;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.sidebar-footer span {
+  color: var(--sidebar-text);
+}
+
+.user-avatar {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-text-strong);
+}
+
+/* ---------- Topbar: sticky, frosted ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ---------- Hierarchy ---------- */
+
+.welcome-section h1 {
+  font-size: 27px;
+  letter-spacing: -0.01em;
+}
+
+.panel-heading h3,
+.doctors-panel-heading h3 {
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.stat-card h2 {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Elevation ---------- */
+
+.panel,
+.stat-card,
+.doctor-stat-card,
+.work-summary-card,
+.area-card {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-card:hover,
+.doctor-stat-card:hover,
+.area-card:hover,
+.work-summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ---------- Buttons: press + focus ---------- */
+
+.primary-button,
+.secondary-button,
+.empty-import-action,
+.doctors-import-button,
+.language-button {
+  transition: transform 0.15s var(--ease-out), background-color 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.primary-button:hover,
+.empty-import-action:hover,
+.doctors-import-button:hover {
+  box-shadow: 0 6px 16px rgba(29, 90, 141, 0.35);
+}
+
+.primary-button:active,
+.secondary-button:active,
+.empty-import-action:active,
+.doctors-import-button:active,
+.icon-button:active,
+.language-button:active {
+  transform: scale(0.96);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+/* ---------- Tables ---------- */
+
+.doctors-table th {
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.doctors-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+}
+
+.doctors-table tbody tr:hover {
+  background: var(--tint-info);
+}
+
+/* ---------- Notices: accent bar ---------- */
+
+.notice-message {
+  border-inline-start: 4px solid var(--success-text);
+}
+
+.notice-message.error {
+  border-inline-start-color: var(--danger-text);
+}
+
+/* ---------- Empty states ---------- */
+
+.empty-file-icon {
+  border-radius: 50%;
+  width: 76px;
+  height: 76px;
+  box-shadow: inset 0 0 0 6px color-mix(in srgb, var(--tint-info) 55%, transparent);
+}
+
+/* ---------- Scrollbars ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- Motion: subtle page rise-in ---------- */
+
+@keyframes page-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-content > * {
+  animation: page-rise 0.45s var(--ease-out) both;
+}
+
+.page-content > *:nth-child(2) { animation-delay: 0.05s; }
+.page-content > *:nth-child(3) { animation-delay: 0.1s; }
+.page-content > *:nth-child(4) { animation-delay: 0.15s; }
+.page-content > *:nth-child(5) { animation-delay: 0.2s; }
+.page-content > *:nth-child(n+6) { animation-delay: 0.25s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .page-content > * {
+    animation: none;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}

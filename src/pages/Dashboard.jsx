@@ -175,9 +175,9 @@ function Dashboard({ callRate, setActivePage }) {
             <Target size={23} />
           </div>
 
-          <span>Call Rate Target</span>
+          <span>{ar ? "المستهدف اليومي" : "Call Rate Target"}</span>
           <h2>{callRate || "—"}</h2>
-          <small>{ar ? "المستهدف اليومي" : "Daily target"}</small>
+          <small>{ar ? "معدل الزيارات في اليوم" : "Daily target"}</small>
         </div>
 
         <div className="stat-card">
