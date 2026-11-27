@@ -497,10 +497,8 @@ function getDoctorFrequency(doctor) {
 // غير موجودة في أي مجموعة تُعامل كمنطقة مستقلة لا تُخلط مع غيرها.
 // اليوم الواحد لا يجمع دكاترة من مجموعتين مختلفتين.
 export const DEFAULT_ZONE_GROUPS = [
-    ["اشمون", "طليا", "سمدون"],
-    ["منوف", "تتا", "كفر فيشه", "شبرا بلوله"],
-    ["الباجور", "بي العرب"],
-    ["سرس", "سرس الليان"],
+    ["Area A", "Area B", "Area C"],
+    ["Area D", "Area E"],
 ];
 
 function buildZoneGroupMap(zoneGroups) {

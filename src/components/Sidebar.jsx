@@ -43,6 +43,7 @@ function Sidebar({ activePage, setActivePage, sidebarOpen }) {
           alt="Nerhadou International"
         />
         <div className="brand-name">Visit Planner</div>
+        <div className="brand-disclaimer">{t("disclaimer")}</div>
       </div>
 
       <div className="menu-title">{t("menuTitle")}</div>

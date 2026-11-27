@@ -2180,3 +2180,19 @@ textarea:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Non-affiliation disclaimer under the brand */
+.brand-disclaimer {
+  text-align: center;
+  color: var(--sidebar-text);
+  opacity: 0.75;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.6;
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+.brand-disclaimer {
+  white-space: normal;
+}

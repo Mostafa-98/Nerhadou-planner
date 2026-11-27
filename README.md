@@ -1,16 +1,41 @@
-# React + Vite
+# Medical Visit Planner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **Personal project — not affiliated with Nerhadou International.**
+> All demo data and screenshots use synthetic sample data only.
 
-Currently, two official plugins are available:
+A React web app that plans a medical representative's monthly doctor visits: import a doctor list from Excel, set workdays and area groups, and generate a balanced visit plan that respects visit frequencies, area grouping, and a daily call-rate target.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Live demo:** https://mostafa-98.github.io/Nerhadou-planner/
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Excel import** — tolerant importer that accepts Arabic or English headers (many spellings), needs only name, area and frequency; skips total rows, parses Arabic-Indic digits, and names missing columns in its error messages.
+- **Visit plan generation** — a planning engine (runs in a Web Worker) distributes visits across the plan period respecting each doctor's requested frequency, area groups (only compatible areas share a day), one area group per day, holidays and meetings, and a daily call-rate target. Reports honestly when constraints make the target unreachable.
+- **Monthly plan & performance** — calendar view of the generated plan and per-doctor performance analysis.
+- **Bilingual UI** — full Arabic/English interface with RTL/LTR switching, including engine messages and importer errors.
+- **Light & dark themes**, responsive down to phone screens.
+- **Private by design** — all data stays in the browser (localStorage); nothing is sent to a server.
 
-## Expanding the ESLint configuration
+## Tech
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+React + Vite, Web Workers for plan generation, SheetJS (xlsx) for Excel parsing, CSS custom properties for theming.
+
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Dashboard (light, English)](docs/screenshots/dashboard-light.png) | ![Doctors (dark, English)](docs/screenshots/doctors-dark.png) |
+| ![Dashboard (dark, Arabic/RTL)](docs/screenshots/dashboard-ar-dark.png) | ![Dashboard (phone)](docs/screenshots/dashboard-phone.png) |
+
+## Run locally
+
+```bash
+npm install
+npm run dev
+```
+
+Build for production:
+
+```bash
+npm run build
+```
