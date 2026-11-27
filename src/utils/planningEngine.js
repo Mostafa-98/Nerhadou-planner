@@ -2114,6 +2114,124 @@ export function generateVisitPlan({
         bestAttempt.sharedDayExceptions = spilledExceptions;
     }
 
+    // === حد أدنى ٩ زيارات لكل يوم عمل ===
+    // طلب المستخدم: أقل يوم في البلان يكون فيه ٩ زيارات على الأقل.
+    // نرفع الأيام الخفيفة بنقل زيارات من الأيام الأثقل للأخف بشرط:
+    // - اليوم المانح يظل >= ٩ بعد النقل.
+    // - نفس المجموعة فقط (لا خلط جديد بين المجموعات).
+    // - الدكتور لا يزور مرتين في نفس اليوم.
+    // - التباعد 6-25 يوم يظل سليماً لكل تواريخ الدكتور بعد النقل.
+    // الأيام التي يستحيل رفعها بهذه الشروط تُوثَّق في
+    // minLoadShortfalls وتظهر كتحذير بدل كسر القواعد بصمت.
+    const MIN_DAY_LOAD = 9;
+    {
+        const minDateByKey = new Map(
+            (preparedDoctors || []).map((d) => [d._key, d._minDate])
+        );
+        const docDates = new Map();
+        for (const day of bestAttempt.days) {
+            for (const v of day.visits) {
+                if (!docDates.has(v.doctorKey)) {
+                    docDates.set(v.doctorKey, []);
+                }
+                docDates.get(v.doctorKey).push(v.date);
+            }
+        }
+        const spacingOkMove = (dates) => {
+            const sorted = [...dates].sort();
+            for (let i = 1; i < sorted.length; i++) {
+                const gap = getDateDifference(
+                    new Date(sorted[i - 1]),
+                    new Date(sorted[i])
+                );
+                if (gap < MIN_GAP_DAYS || gap > MAX_GAP_DAYS) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        const shortfalls = [];
+        const blocked = new Set();
+        let guard = 0;
+        for (;;) {
+            if (++guard > 500) break;
+            const light = bestAttempt.days
+                .filter(
+                    (d) =>
+                        d.visits.length < MIN_DAY_LOAD &&
+                        !blocked.has(d.date)
+                )
+                .sort(
+                    (a, b) =>
+                        a.visits.length - b.visits.length ||
+                        a.date.localeCompare(b.date)
+                )[0];
+            if (!light) break;
+            const lightZones = [
+                ...new Set(
+                    light.visits.map((v) => v.zone).filter(Boolean)
+                ),
+            ];
+            const donors = bestAttempt.days
+                .filter(
+                    (d) =>
+                        d.date !== light.date &&
+                        d.visits.length > MIN_DAY_LOAD
+                )
+                .sort(
+                    (a, b) =>
+                        b.visits.length - a.visits.length ||
+                        a.date.localeCompare(b.date)
+                );
+            let move = null;
+            outer: for (const donor of donors) {
+                for (const v of donor.visits) {
+                    if (!lightZones.includes(v.zone)) continue;
+                    if (
+                        light.visits.some(
+                            (x) => x.doctorKey === v.doctorKey
+                        )
+                    )
+                        continue;
+                    const minDate = minDateByKey.get(v.doctorKey);
+                    if (minDate && light.date < minDate) continue;
+                    const after = (
+                        docDates.get(v.doctorKey) || []
+                    )
+                        .filter((dt) => dt !== donor.date)
+                        .concat([light.date]);
+                    if (!spacingOkMove(after)) continue;
+                    move = { donor, v };
+                    break outer;
+                }
+            }
+            if (!move) {
+                blocked.add(light.date);
+                shortfalls.push({
+                    date: light.date,
+                    dayName: light.dayName,
+                    load: light.visits.length,
+                });
+                continue;
+            }
+            const { donor, v } = move;
+            donor.visits.splice(donor.visits.indexOf(v), 1);
+            donor.totalVisits = donor.visits.length;
+            v.date = light.date;
+            v.id = `${v.doctorId || v.doctorName}-${light.date}-${v.visitNumber}`;
+            light.visits.push(v);
+            light.totalVisits = light.visits.length;
+            docDates.set(
+                v.doctorKey,
+                (docDates.get(v.doctorKey) || [])
+                    .filter((dt) => dt !== donor.date)
+                    .concat([light.date])
+            );
+        }
+        shortfalls.sort((a, b) => a.date.localeCompare(b.date));
+        bestAttempt.minLoadShortfalls = shortfalls;
+    }
+
     const incompleteDoctorsBeforeOutput = doctors
         .map((doctor, index) => ({
             doctor,
@@ -2296,6 +2414,21 @@ export function generateVisitPlan({
         );
     }
 
+    const minLoadShortfalls =
+        bestAttempt.minLoadShortfalls || [];
+    if (minLoadShortfalls.length > 0) {
+        const isAr2 = getEngineLang() !== "en";
+        const lines2 = minLoadShortfalls
+            .map((x) => `${x.date} (${x.dayName}): ${x.load}`)
+            .join(isAr2 ? " ؛ " : "; ");
+        warnings.push(
+            (isAr2
+                ? `أيام تعذّر رفعها إلى الحد الأدنى ٩ زيارات بدون كسر قواعد المجموعات أو التباعد: `
+                : `Days that could not be raised to the 9-visit minimum without breaking group or spacing rules: `) +
+                lines2
+        );
+    }
+
     if (scheduledVisits !== requiredVisits) {
         warnings.push(
             tt("cannotScheduleAll")
@@ -2328,5 +2461,6 @@ export function generateVisitPlan({
         warnings,
         stats,
         sharedDayExceptions,
+        minLoadShortfalls,
     };
 }

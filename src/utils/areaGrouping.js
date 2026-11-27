@@ -2,6 +2,9 @@ import { normalizeBrick } from "./planningEngine";
 
 const norm = (s) =>
     String(s || "")
+        // إزالة علامات الاتجاه غير المرئية التي تأتي مع النص
+        // المنسوخ من واتساب وتفشل المطابقة بصمت.
+        .replace(/[‎‏‪-‮؜﻿]/g, "")
         .trim()
         .toLowerCase()
         .replace(/[أإآ]/g, "ا")
@@ -51,6 +54,7 @@ export function parseGroupsText(text, doctors) {
         const line = rawLine.trim();
         if (!line) continue;
         const tokens = line
+            .replace(/[‎‏‪-‮؜﻿]/g, "")
             .split(/[,،;]/)
             .map((t) => t.trim())
             .filter(Boolean);

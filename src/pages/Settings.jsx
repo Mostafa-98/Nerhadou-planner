@@ -58,6 +58,7 @@ function Settings({
   const [selectedGroup, setSelectedGroup] = useState(0);
   const [pasteText, setPasteText] = useState("");
   const [pastePreview, setPastePreview] = useState(null);
+  const previewRef = useRef(null);
 
   const ungroupedSheetAreas = ungroupedAreas(doctors, zoneGroups);
 
@@ -75,8 +76,21 @@ function Settings({
   };
 
   const handlePastePreview = () => {
-    if (!pasteText.trim()) return;
-    setPastePreview(parseGroupsText(pasteText, doctors));
+    if (!pasteText.trim()) {
+      // بدون نص ملصوق: اعرض المجموعات الحالية المحفوظة بنفس
+      // الشكل حتى يرى المستخدم حالته الحالية بوضوح.
+      setPastePreview({
+        groups: zoneGroups,
+        unmatched: [],
+        missing: ungroupedSheetAreas,
+        current: true,
+      });
+    } else {
+      setPastePreview(parseGroupsText(pasteText, doctors));
+    }
+    setTimeout(() => {
+      previewRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 60);
   };
 
   const applyPastedGroups = () => {
@@ -261,15 +275,32 @@ function Settings({
           </div>
 
           {pastePreview && (
-            <div className="paste-preview">
+            <div className="paste-preview" ref={previewRef}>
+              <p className="section-description" style={{ marginTop: 0 }}>
+                <strong>
+                  {pastePreview.current
+                    ? (ar ? "المجموعات الحالية: " : "Current groups: ")
+                    : (ar ? "المجموعات المقروءة من النص: " : "Groups read from the text: ")}
+                  {ar
+                    ? `${pastePreview.groups.length} مجموعات، ${pastePreview.groups.flat().length} منطقة متغطية${pastePreview.missing.length ? `، ${pastePreview.missing.length} منطقة بدون مجموعة` : ""}${pastePreview.unmatched.length ? `، ${pastePreview.unmatched.length} اسم غير متطابق` : ""}`
+                    : `${pastePreview.groups.length} groups, ${pastePreview.groups.flat().length} areas covered${pastePreview.missing.length ? `, ${pastePreview.missing.length} sheet areas ungrouped` : ""}${pastePreview.unmatched.length ? `, ${pastePreview.unmatched.length} unmatched names` : ""}`}
+                </strong>
+              </p>
               {pastePreview.groups.map((group, i) => (
                 <div className="zone-group-bricks" key={i} style={{ marginBottom: 6 }}>
-                  <strong style={{ marginInlineEnd: 6 }}>{ar ? `مجموعة ${i + 1}:` : `Group ${i + 1}:`}</strong>
+                  <strong style={{ marginInlineEnd: 6 }}>{ar ? `مجموعة ${i + 1} (${group.length}):` : `Group ${i + 1} (${group.length}):`}</strong>
                   {group.map((brick) => (
                     <span className="zone-brick-chip" key={brick}>{brick}</span>
                   ))}
                 </div>
               ))}
+              {!pastePreview.groups.length && (
+                <p className="paste-warning">
+                  {ar
+                    ? "لم يتم قراءة أي مجموعة. الصق المجموعات في المربع أولاً (سطر لكل مجموعة والمناطق بفاصلة)، أو راجع الأسماء غير المتطابقة بالأسفل."
+                    : "No groups were read. Paste the groups in the box first (one line per group, areas separated by commas), or check the unmatched names below."}
+                </p>
+              )}
               {pastePreview.unmatched.length > 0 && (
                 <p className="paste-warning">
                   {ar
@@ -285,10 +316,12 @@ function Settings({
                 </p>
               )}
               <div className="export-actions" style={{ marginTop: 8 }}>
+                {!pastePreview.current && (
                 <button type="button" className="export-button" onClick={applyPastedGroups} disabled={!pastePreview.groups.length}>
                   <ClipboardPaste size={15} />
                   {ar ? "استبدال المجموعات الحالية" : "Replace current groups"}
                 </button>
+                )}
                 <button type="button" className="export-button" onClick={() => setPastePreview(null)}>
                   {ar ? "إلغاء" : "Cancel"}
                 </button>
