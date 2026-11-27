@@ -22,6 +22,11 @@ const FIXED_PLAN_END_DATE = "2026-12-30";
 const FIXED_CALL_RATE = "12.5";
 
 function App() {
+    const [doctors] = usePersistentState(
+        "visit-planner-doctors",
+        []
+    );
+
   const { language } = useI18n();
   const [activePage, setActivePage] = useState("لوحة التحكم");
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768);
