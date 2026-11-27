@@ -6,9 +6,12 @@ import {
     AlertTriangle,
     CheckCircle2,
     RefreshCw,
+    Download,
+    Printer,
 } from "lucide-react";
 
 import { usePersistentState } from "../utils/usePersistentState";
+import { exportPlanToExcel, printPlanToPdf } from "../utils/planExporter";
 
 import { useI18n } from "../i18n";
 
@@ -29,7 +32,10 @@ function VisitPlanning({
         []
     );
 
-    const [plan, setPlan] = useState(null);
+    const [plan, setPlan] = usePersistentState(
+        "visit-planner-plan-result",
+        null
+    );
     const [validation, setValidation] = useState(null);
     const [message, setMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
@@ -390,6 +396,30 @@ function VisitPlanning({
                                 <p>
                                     {ar ? "تفاصيل الدكاترة الموزعين على أيام العمل" : "Doctors assigned across the working days"}
                                 </p>
+                            </div>
+                            <div className="export-actions">
+                                <button
+                                    type="button"
+                                    className="export-button"
+                                    onClick={() => exportPlanToExcel(plan, language)}
+                                >
+                                    <Download size={15} />
+                                    {ar ? "تصدير Excel" : "Export Excel"}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="export-button"
+                                    onClick={() => {
+                                        if (!printPlanToPdf(plan, language)) {
+                                            setMessage(
+                                                ar ? "المتصفح منع نافذة الطباعة. فعّل النوافذ المنبثقة وحاول مرة أخرى." : "The browser blocked the print window. Allow pop-ups and try again."
+                                            );
+                                        }
+                                    }}
+                                >
+                                    <Printer size={15} />
+                                    {ar ? "طباعة / PDF" : "Print / PDF"}
+                                </button>
                             </div>
 
                             <ClipboardList size={24} />

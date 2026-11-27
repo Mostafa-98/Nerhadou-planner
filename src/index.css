@@ -2221,3 +2221,10 @@ textarea:focus-visible {
   --tint-info: #17334d;
   --tint-info-text: #8fc3ea;
 }
+
+/* Export & backup actions */
+.export-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.export-button { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .1s ease; }
+.export-button:hover { background: var(--tint-info); border-color: var(--primary); }
+.export-button:active { transform: scale(.97); }
+.export-button:focus-visible { outline: none; box-shadow: var(--ring); }

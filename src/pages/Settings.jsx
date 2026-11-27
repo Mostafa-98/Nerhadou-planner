@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useI18n } from "../i18n";
 import { dayName } from "../i18n/engineText.js";
+import { exportAllData, importAllData } from "../utils/backup";
 
 import {
   CalendarDays,
@@ -9,6 +10,9 @@ import {
   CalendarOff,
   Plus,
   Trash2,
+  Database,
+  Download,
+  Upload,
 } from "lucide-react";
 
 const weekDays = [
@@ -48,6 +52,29 @@ function Settings({
   const { language } = useI18n();
   const ar = language === "ar";
   const [groupInputs, setGroupInputs] = useState({});
+  const backupFileRef = useRef(null);
+  const [backupMessage, setBackupMessage] = useState("");
+
+  const handleBackupImport = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const count = await importAllData(file);
+      setBackupMessage(
+        ar
+          ? `تم استيراد ${count} إعداد. سيتم تحديث الصفحة الآن.`
+          : `Imported ${count} settings. The page will reload now.`
+      );
+      setTimeout(() => window.location.reload(), 1200);
+    } catch {
+      setBackupMessage(
+        ar
+          ? "الملف غير صالح. اختر ملف نسخة احتياطية تم تصديره من التطبيق."
+          : "Invalid file. Choose a backup file exported from this app."
+      );
+    }
+  };
 
   const updateGroupInput = (groupIndex, value) => {
     setGroupInputs((current) => ({
@@ -474,6 +501,55 @@ function Settings({
             {ar ? "إجمالي الزيارات = أيام العمل الفعلية × Call Rate. يتم استبعاد أيام الراحة والإجازات والاجتماعات المسجلة." : "Total visits = actual working days x Call Rate. Rest days, holidays and registered meetings are excluded."}
           </p>
         </div>
+      </div>
+
+      <div className="settings-card" style={{ marginTop: 20 }}>
+        <div className="section-header">
+          <div>
+            <h2>{ar ? "النسخ الاحتياطي" : "Backup"}</h2>
+            <p>
+              {ar
+                ? "احفظ كل بيانات التطبيق في ملف واحد، أو استرجعها على هذا الجهاز أو أي جهاز آخر."
+                : "Save all app data to one file, or restore it on this or any other device."}
+            </p>
+          </div>
+          <Database size={24} />
+        </div>
+        <div className="export-actions">
+          <button
+            type="button"
+            className="export-button"
+            onClick={() => {
+              const count = exportAllData();
+              setBackupMessage(
+                ar
+                  ? `تم تصدير ${count} إعداد في ملف النسخة الاحتياطية.`
+                  : `Exported ${count} settings to the backup file.`
+              );
+            }}
+          >
+            <Download size={15} />
+            {ar ? "تصدير نسخة احتياطية" : "Export backup"}
+          </button>
+          <button
+            type="button"
+            className="export-button"
+            onClick={() => backupFileRef.current?.click()}
+          >
+            <Upload size={15} />
+            {ar ? "استيراد نسخة احتياطية" : "Import backup"}
+          </button>
+          <input
+            ref={backupFileRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={handleBackupImport}
+          />
+        </div>
+        {backupMessage && (
+          <p style={{ marginTop: 12 }}>{backupMessage}</p>
+        )}
       </div>
     </div>
   );
