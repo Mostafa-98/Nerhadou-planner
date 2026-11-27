@@ -2228,3 +2228,6 @@ textarea:focus-visible {
 .export-button:hover { background: var(--tint-info); border-color: var(--primary); }
 .export-button:active { transform: scale(.97); }
 .export-button:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* Visit tracking */
+.visit-done { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }

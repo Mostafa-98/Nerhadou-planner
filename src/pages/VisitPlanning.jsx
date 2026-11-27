@@ -36,6 +36,17 @@ function VisitPlanning({
         "visit-planner-plan-result",
         null
     );
+    const [actuals, setActuals] = usePersistentState(
+        "visit-planner-actuals",
+        {}
+    );
+
+    const toggleVisitDone = (visitId) => {
+        setActuals((current) => ({
+            ...current,
+            [visitId]: !current[visitId],
+        }));
+    };
     const [validation, setValidation] = useState(null);
     const [message, setMessage] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
@@ -124,6 +135,16 @@ function VisitPlanning({
     };
 
     const stats = plan?.stats || {};
+
+    const allPlanVisits = plan
+        ? plan.days.flatMap((day) => day.visits || [])
+        : [];
+    const doneCount = allPlanVisits.filter(
+        (visit) => actuals[visit.id]
+    ).length;
+    const completionPercent = allPlanVisits.length
+        ? Math.round((doneCount / allPlanVisits.length) * 100)
+        : 0;
 
     const actualCallRate =
         Number(stats.averageVisitsPerDay || 0);
@@ -301,6 +322,22 @@ function VisitPlanning({
                                 </h2>
                             </div>
                         </div>
+
+                        <div className="stat-card">
+                            <div>
+                                <p>{ar ? "الزيارات المنجزة" : "Completed visits"}</p>
+                                <h2>
+                                    {doneCount} / {allPlanVisits.length}
+                                </h2>
+                            </div>
+                        </div>
+
+                        <div className="stat-card">
+                            <div>
+                                <p>{ar ? "نسبة الإنجاز" : "Completion"}</p>
+                                <h2>{completionPercent}%</h2>
+                            </div>
+                        </div>
                     </div>
 
                     <div
@@ -467,6 +504,7 @@ function VisitPlanning({
                                                     <th>Brick</th>
                                                     <th>Area</th>
                                                     <th>{ar ? "رقم الزيارة" : "Visit #"}</th>
+                                                    <th>{ar ? "تمت" : "Done"}</th>
                                                 </tr>
                                             </thead>
 
@@ -488,6 +526,14 @@ function VisitPlanning({
                                                             </td>
                                                             <td>
                                                                 {visit.visitNumber}
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="visit-done"
+                                                                    checked={!!actuals[visit.id]}
+                                                                    onChange={() => toggleVisitDone(visit.id)}
+                                                                />
                                                             </td>
                                                         </tr>
                                                     )
